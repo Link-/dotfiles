@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+##
+# Change the default shell to fish
+##
+fish_path=$(grep "fish" /etc/shells | head -n 1)
+chsh -s $fish_path
+
+##
+# Install omf
+##
+curl https://raw.githubusercontent.com/oh-my-fish/oh-my-fish/90f875e02dbb63a7e12430ceb034206bea278c28/bin/install | fish
+# Install pure theme
+omf install rafaelrinaldi/pure
