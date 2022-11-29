@@ -4,7 +4,7 @@
 # Change the default shell to fish
 ##
 fish_path=$(grep "fish" /etc/shells | head -n 1)
-chsh -s $fish_path
+sudo chsh -s $fish_path vscode
 
 ##
 # Install omf
