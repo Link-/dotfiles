@@ -11,4 +11,4 @@ sudo chsh -s $fish_path vscode
 ##
 curl https://raw.githubusercontent.com/oh-my-fish/oh-my-fish/90f875e02dbb63a7e12430ceb034206bea278c28/bin/install | fish
 # Install pure theme
-omf install rafaelrinaldi/pure
+omf install pure
