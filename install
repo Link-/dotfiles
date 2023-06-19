@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 ## git configuration
-git config --global pull.rebase true
 git config --global push.autoSetupRemote true
 
 ##
