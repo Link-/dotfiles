@@ -13,7 +13,7 @@ then
     echo "Homebrew could not be found. Skipping..."
 else
     echo "Installing fzf, bat, tree, jq, mycli"
-    brew install fzf bat tree jq mycli
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli
 
     #@--------------------------------@#
     # Configure fzf
