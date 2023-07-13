@@ -33,4 +33,5 @@ curl -LSso ~/.vim/autoload/pathogen.vim https://raw.githubusercontent.com/tpope/
 #@--------------------------------@#
 # Codespaces specific
 #@--------------------------------@#
+echo "Updating PATH for zsh"
 echo "PATH=$PATH:$(brew --prefix)/bin:/home/vscode/.local/bin" >> ~/.zshrc
