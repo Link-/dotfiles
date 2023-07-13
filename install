@@ -3,15 +3,34 @@
 ## git configuration
 git config --global push.autoSetupRemote true
 
-##
-# Change the default shell to fish
-##
-fish_path=$(grep "fish" /etc/shells | head -n 1)
-sudo chsh -s $fish_path vscode
+#@--------------------------------@#
+# Check if homebrew is installed
+#@--------------------------------@#
+if ! command -v brew &> /dev/null
+then
+    echo "Homebrew could not be found. Skipping..."
+else
+    echo "Installing fzf, bat, tree, jq, mycli"
+    brew install fzf bat tree jq mycli
+fi
 
-##
-# Install omf
-##
-curl https://raw.githubusercontent.com/oh-my-fish/oh-my-fish/90f875e02dbb63a7e12430ceb034206bea278c28/bin/install | fish
-# Install pure theme
-omf install pure
+#@--------------------------------@#
+# Configure fzf
+#   - Install keybindings
+#   - Install shell completion
+#   - Do not update shell configuration files
+#@--------------------------------@#
+echo "Configuring fzf keybindings and shell completion"
+"$(brew --prefix)"/opt/fzf/install --key-bindings --completion --no-update-rc
+
+#@--------------------------------@#
+# Install vim pathogen
+#@--------------------------------@#
+echo "Installing vim pathogen"
+mkdir -p ~/.vim/autoload ~/.vim/bundle && \
+curl -LSso ~/.vim/autoload/pathogen.vim https://raw.githubusercontent.com/tpope/vim-pathogen/master/autoload/pathogen.vim
+
+#@--------------------------------@#
+# Codespaces specific
+#@--------------------------------@#
+echo "PATH=$PATH:$(brew --prefix)/bin:/home/vscode/.local/bin" >> ~/.zshrc
