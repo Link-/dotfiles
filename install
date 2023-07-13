@@ -6,22 +6,25 @@ git config --global push.autoSetupRemote true
 #@--------------------------------@#
 # Check if homebrew is installed
 #@--------------------------------@#
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
 if ! command -v brew &> /dev/null
 then
     echo "Homebrew could not be found. Skipping..."
 else
     echo "Installing fzf, bat, tree, jq, mycli"
     brew install fzf bat tree jq mycli
+
+    #@--------------------------------@#
+    # Configure fzf
+    #   - Install keybindings
+    #   - Install shell completion
+    #   - Do not update shell configuration files
+    #@--------------------------------@#
+    echo "Configuring fzf keybindings and shell completion"
+    "$(brew --prefix)"/opt/fzf/install --key-bindings --completion --no-update-rc
 fi
 
-#@--------------------------------@#
-# Configure fzf
-#   - Install keybindings
-#   - Install shell completion
-#   - Do not update shell configuration files
-#@--------------------------------@#
-echo "Configuring fzf keybindings and shell completion"
-"$(brew --prefix)"/opt/fzf/install --key-bindings --completion --no-update-rc
 
 #@--------------------------------@#
 # Install vim pathogen
