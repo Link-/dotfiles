@@ -22,7 +22,7 @@ else
     #   - Do not update shell configuration files
     #@--------------------------------@#
     echo "Configuring fzf keybindings and shell completion"
-    "$(brew --prefix)"/opt/fzf/install --key-bindings --completion --no-update-rc
+    "$(brew --prefix)"/opt/fzf/install --key-bindings --completion
 fi
 
 
