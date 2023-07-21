@@ -41,3 +41,6 @@ git clone https://github.com/romainl/Apprentice.git ~/.vim/bundle/apprentice
 #@--------------------------------@#
 echo "Updating PATH for zsh"
 echo "PATH=$PATH:$(brew --prefix)/bin:/home/vscode/.local/bin" >> ~/.zshrc
+# Set theme
+echo "Switching theme to minimal"
+omz theme use minimal
