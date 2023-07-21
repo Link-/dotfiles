@@ -44,3 +44,5 @@ echo "PATH=$PATH:$(brew --prefix)/bin:/home/vscode/.local/bin" >> ~/.zshrc
 # Set theme
 echo "Switching theme to minimal"
 omz theme use minimal
+# Install kubectl completions
+kubectl completion zsh > "${fpath[1]}/_kubectl"
