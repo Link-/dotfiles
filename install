@@ -12,8 +12,8 @@ if ! command -v brew &> /dev/null
 then
     echo "Homebrew could not be found. Skipping..."
 else
-    echo "Installing fzf, bat, tree, jq, mycli, helm"
-    HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli helm
+    echo "Installing fzf, bat, tree, jq, mycli, helm, pass"
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli helm pass
 
     #@--------------------------------@#
     # Configure fzf
