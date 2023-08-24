@@ -42,11 +42,11 @@ git clone https://github.com/romainl/Apprentice.git ~/.vim/bundle/apprentice
 echo "Updating PATH for zsh"
 echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)' >> ~/.zshrc
 echo "PATH=$PATH:$(brew --prefix)/bin:/home/vscode/.local/bin" >> ~/.zshrc
-echo "alias k=kubectl"
+echo "alias k=kubectl" >> ~/.zshrc
 # Set theme
 echo "Switching theme to minimal"
-omz theme use minimal
+omz theme use minimal || true
 # Kubectl completions
-kubectl completion zsh > "${fpath[1]}/_kubectl"
+kubectl completion zsh > "${fpath[1]}/_kubectl" || true
 # Helm completions
-helm completion zsh > "${fpath[1]}/_helm"
+helm completion zsh > "${fpath[1]}/_helm" || true
