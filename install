@@ -25,6 +25,10 @@ else
     "$(brew --prefix)"/opt/fzf/install --key-bindings --completion
 fi
 
+#@--------------------------------@#
+# Create a GPG key
+#@--------------------------------@#
+gpg --batch --generate-key < .gpg_key.metadata
 
 #@--------------------------------@#
 # Configuring vim and tmux
