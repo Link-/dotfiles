@@ -6,7 +6,5 @@ Subkey-Length: 4096
 Name-Real: BD
 Name-Email: 568794+Link-@users.noreply.github.com
 Expire-Date: 0
-%no-ask-passphrase
-%no-protection
 %commit
 %echo Key generated
