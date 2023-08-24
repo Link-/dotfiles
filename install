@@ -28,8 +28,11 @@ fi
 #@--------------------------------@#
 # Create a GPG key
 #@--------------------------------@#
-export GPG_TTY=$(tty)
+export GPG_TTY="$(tty)"
+echo "Generating GPG key"
 gpg --batch --generate-key < .pass_key.metadata
+echo "Listing GPG keys"
+gpg --list-secret-keys --keyid-format LONG
 
 #@--------------------------------@#
 # Configuring vim and tmux
