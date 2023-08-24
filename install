@@ -50,6 +50,7 @@ echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.zshrc
 echo "PATH=$PATH:$(brew --prefix)/bin:/home/vscode/.local/bin" >> ~/.zshrc
 echo "alias dotfiles='cd /workspaces/.codespaces/.persistedshare/dotfiles'" >> ~/.zshrc
 echo "alias k='kubectl'" >> ~/.zshrc
+echo "alias logout='unset GITHUB_TOKEN'" >> ~/.zshrc
 # Set theme
 echo "Switching theme to minimal"
 omz theme use minimal || true
