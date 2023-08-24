@@ -27,7 +27,7 @@ fi
 
 
 #@--------------------------------@#
-# Install vim pathogen
+# Configuring vim and tmux
 #@--------------------------------@#
 echo "Installing vim pathogen"
 mkdir -p ~/.vim/autoload ~/.vim/bundle && \
@@ -35,6 +35,12 @@ curl -LSso ~/.vim/autoload/pathogen.vim https://raw.githubusercontent.com/tpope/
 
 echo "Installing apprentice theme"
 git clone https://github.com/romainl/Apprentice.git ~/.vim/bundle/apprentice
+
+echo "Copying .vimrc"
+cp .vimrc ~/.vimrc
+
+echo "Copying .tmux.conf"
+cp .tmux.conf ~/.tmux.conf
 
 #@--------------------------------@#
 # Codespaces specific
