@@ -28,6 +28,7 @@ fi
 #@--------------------------------@#
 # Create a GPG key
 #@--------------------------------@#
+export GPG_TTY=$(tty)
 gpg --batch --generate-key < .gpg_key.metadata
 
 #@--------------------------------@#
