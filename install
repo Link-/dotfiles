@@ -40,6 +40,7 @@ git clone https://github.com/romainl/Apprentice.git ~/.vim/bundle/apprentice
 # Codespaces specific
 #@--------------------------------@#
 echo "Updating PATH for zsh"
+echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)' >> ~/.zshrc
 echo "PATH=$PATH:$(brew --prefix)/bin:/home/vscode/.local/bin" >> ~/.zshrc
 echo "alias k=kubectl"
 # Set theme
