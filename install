@@ -41,8 +41,11 @@ git clone https://github.com/romainl/Apprentice.git ~/.vim/bundle/apprentice
 #@--------------------------------@#
 echo "Updating PATH for zsh"
 echo "PATH=$PATH:$(brew --prefix)/bin:/home/vscode/.local/bin" >> ~/.zshrc
+echo "alias k=kubectl"
 # Set theme
 echo "Switching theme to minimal"
 omz theme use minimal
-# Install kubectl completions
+# Kubectl completions
 kubectl completion zsh > "${fpath[1]}/_kubectl"
+# Helm completions
+helm completion zsh > "${fpath[1]}/_helm"
