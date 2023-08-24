@@ -42,6 +42,7 @@ git clone https://github.com/romainl/Apprentice.git ~/.vim/bundle/apprentice
 echo "Updating PATH for zsh"
 echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.zshrc
 echo "PATH=$PATH:$(brew --prefix)/bin:/home/vscode/.local/bin" >> ~/.zshrc
+echo "alias dotfiles='cd /workspaces/.codespaces/.persistedshare/dotfiles'" >> ~/.zshrc
 echo "alias k='kubectl'" >> ~/.zshrc
 # Set theme
 echo "Switching theme to minimal"
