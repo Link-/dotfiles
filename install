@@ -62,6 +62,8 @@ echo "alias logout='unset GITHUB_TOKEN'" >> ~/.zshrc
 # Set theme
 echo "Switching theme to minimal"
 omz theme use minimal || true
+# Install autosuggestions
+git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
 # Kubectl completions
 kubectl completion zsh > "${fpath[1]}/_kubectl" || true
 # Helm completions
