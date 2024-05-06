@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-HOMEBREW_EXISTS="$(command -v brew &> /dev/null)"
-EZA_EXISTS="$(command -v eza &> /dev/null)"
-ZSH_EXISTS="$(command -v zsh &> /dev/null)"
+HOMEBREW_EXISTS="$(command -v brew)"
+EZA_EXISTS="$(command -v eza)"
+ZSH_EXISTS="$(command -v zsh)"
 
 set -euo pipefail
 
@@ -100,8 +100,6 @@ then
     HOMEBREW_NO_AUTO_UPDATE=1 brew install zsh
 else
     log info "zsh already installed. skipping.."
-    log info "Switching to zsh"
-    /usr/bin/env zsh
 fi
 
 #@--------------------------------@#
@@ -117,13 +115,12 @@ log info "Updating PATH for zsh"
     # echo "alias logout='unset GITHUB_TOKEN'"
 } >> ~/.zshrc
 
-# Set theme
-log info "Switching theme to minimal"
-omz theme use minimal || true
+# Search for ZSH_THEME in ~/.zshrc and replace the value with "minimal"
+sed -i -E 's/ZSH_THEME=\"[a-z]*\"/ZSH_THEME=\"minimal\"/g' ~/.zshrc
+
 # Install autosuggestions
 log info "Installing zsh-autosuggestions"
 git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions || true
-
 
 #@--------------------------------@#
 # Adding auto-completions
@@ -138,6 +135,6 @@ helm completion zsh > "${fpath[1]}/_helm" || true
 #@--------------------------------@#
 export GPG_TTY="$(tty)"
 log info "Generating GPG key"
-gpg --batch --generate-key < .pass_key.metadata
+gpg --batch --generate-key < .pass_key.metadata || true
 log info "Listing GPG keys"
-gpg --list-secret-keys --keyid-format LONG
+gpg --list-secret-keys --keyid-format LONG || true
