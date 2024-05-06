@@ -52,6 +52,7 @@ else
     log info "Configuring fzf keybindings and shell completion"
     "$(brew --prefix)"/opt/fzf/install --key-bindings --completion
 fi
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 #@--------------------------------@#
 # Download tools
