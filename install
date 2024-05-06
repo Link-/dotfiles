@@ -31,9 +31,10 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 if ! command -v brew &> /dev/null
 then
-    log info "Homebrew could not be found. Skipping..)"
+    log info "Homebrew not found. Installing.."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 else
-    log info "Installing fzf, bat, tree, jq, mycli, helm, pass"a
+    log info "Installing fzf, bat, tree, jq, mycli, helm, pass"
     HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli helm pass
 
     #@--------------------------------@#
@@ -61,15 +62,6 @@ else
         sudo mv /tmp/eza /usr/local/bin/eza && \
         sudo chmod +x /usr/local/bin/eza
 fi
-
-#@--------------------------------@#
-# Create a GPG key
-#@--------------------------------@#
-export GPG_TTY="$(tty)"
-log info "Generating GPG key"
-gpg --batch --generate-key < .pass_key.metadata
-log info "Listing GPG keys"
-gpg --list-secret-keys --keyid-format LONG
 
 #@--------------------------------@#
 # Configuring vim and tmux
@@ -115,3 +107,12 @@ git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-m
 kubectl completion zsh > "${fpath[1]}/_kubectl" || true
 # Helm completions
 helm completion zsh > "${fpath[1]}/_helm" || true
+
+#@--------------------------------@#
+# Create a GPG key
+#@--------------------------------@#
+export GPG_TTY="$(tty)"
+log info "Generating GPG key"
+gpg --batch --generate-key < .pass_key.metadata
+log info "Listing GPG keys"
+gpg --list-secret-keys --keyid-format LONG
