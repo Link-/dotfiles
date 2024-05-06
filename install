@@ -2,17 +2,20 @@
 
 set -euo pipefail
 
-trap 'log error "Script failed at line $LINENO"' ERR
+trap 'log "error" "Script failed at line $LINENO"' ERR
 
 log() {
     case $1 in
         ERROR|error)
+        shift
         printf "ERROR::: %s\n" "$@"
         ;;
         INFO|info)
+        shift
         printf "INFO::: %s\n" "$@"
         ;;
         WARN|warn)
+        shift
         printf "WARN::: %s\n" "$@"
         ;;
         *)
@@ -65,6 +68,7 @@ else
 fi
 
 # Move lnav
+log info "Moving lnav"
 sudo cp tools/lnav /usr/local/bin/lnav && \
     sudo chmod +x /usr/local/bin/lnav
 
@@ -76,7 +80,7 @@ mkdir -p ~/.vim/autoload ~/.vim/bundle && \
 curl -LSso ~/.vim/autoload/pathogen.vim https://raw.githubusercontent.com/tpope/vim-pathogen/master/autoload/pathogen.vim
 
 log info "Installing apprentice theme"
-git clone https://github.com/romainl/Apprentice.git ~/.vim/bundle/apprentice
+git clone https://github.com/romainl/Apprentice.git ~/.vim/bundle/apprentice || true
 
 log info "Copying .vimrc"
 cp .vimrc ~/.vimrc
