@@ -108,6 +108,7 @@ fi
 log info "Updating PATH for zsh"
 {
     echo "PATH=$PATH:$(brew --prefix)/bin:/home/vscode/.local/bin";
+    echo "PATH=$PATH:/vscode/bin/linux-x64/$(ls --time=ctime /vscode/bin/linux-x64/ | head -n 1)/bin/remote-cli"
     echo "alias dotfiles='cd /workspaces/.codespaces/.persistedshare/dotfiles'";
     echo "alias k='kubectl'";
     echo "alias ll='eza -la -g'";
