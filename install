@@ -63,6 +63,10 @@ else
         sudo chmod +x /usr/local/bin/eza
 fi
 
+# Move lnav
+sudo cp tools/lnav /usr/local/bin/lnav && \
+    sudo chmod +x /usr/local/bin/lnav
+
 #@--------------------------------@#
 # Configuring vim and tmux
 #@--------------------------------@#
