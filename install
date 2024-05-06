@@ -35,8 +35,6 @@ git config --global push.autoSetupRemote true
 #@--------------------------------@#
 # Check if homebrew is installed
 #@--------------------------------@#
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-
 if test -z "$HOMEBREW_EXISTS"
 then
     log info "Homebrew not found. Installing.."
