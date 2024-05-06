@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+HOMEBREW_EXISTS="$(command -v brew &> /dev/null)"
+EZA_EXISTS="$(command -v eza &> /dev/null)"
+ZSH_EXISTS="$(command -v zsh &> /dev/null)"
+
 set -euo pipefail
 
 trap 'log "error" "Script failed at line $LINENO"' ERR
@@ -33,7 +37,7 @@ git config --global push.autoSetupRemote true
 #@--------------------------------@#
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
-if ! command -v brew &> /dev/null
+if test -z "$HOMEBREW_EXISTS"
 then
     log info "Homebrew not found. Installing.."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -54,17 +58,17 @@ fi
 #@--------------------------------@#
 # Download tools
 #@--------------------------------@#
-if ! command -v eza &> /dev/null
+if test -z "$EZA_EXISTS"
 then
-    log info "eza already installed. skipping.."
-else
-    log info "Downloading eza"
+    log info "eza not found. Installing eza"
     EZA_RELEASE_ASSET="eza_x86_64-unknown-linux-gnu.tar.gz" && \
         gh release \
         download -R eza-community/eza --clobber -D /tmp -p "$EZA_RELEASE_ASSET" && \
         tar -xvf /tmp/"$EZA_RELEASE_ASSET" -C /tmp && \
         sudo mv /tmp/eza /usr/local/bin/eza && \
         sudo chmod +x /usr/local/bin/eza
+else
+    log info "eza already installed. skipping.."
 fi
 
 # Move lnav
@@ -87,6 +91,19 @@ cp .vimrc ~/.vimrc
 
 log info "Copying .tmux.conf"
 cp .tmux.conf ~/.tmux.conf
+
+#@--------------------------------@#
+# Switching to zsh
+#@--------------------------------@#
+if test -z "$ZSH_EXISTS"
+then
+    log info "zsh not found. Installing.."
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install zsh
+else
+    log info "zsh already installed. skipping.."
+    log info "Switching to zsh"
+    /usr/bin/env zsh
+fi
 
 #@--------------------------------@#
 # Codespaces specific
