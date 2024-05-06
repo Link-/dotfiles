@@ -106,7 +106,7 @@ log info "Switching theme to minimal"
 omz theme use minimal || true
 # Install autosuggestions
 log info "Installing zsh-autosuggestions"
-git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions || true
 
 
 #@--------------------------------@#
