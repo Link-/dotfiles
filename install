@@ -2,20 +2,21 @@
 
 set -euo pipefail
 
+trap 'log error "Script failed at line $LINENO"' ERR
+
 log() {
     case $1 in
         ERROR|error)
-        printf "ERROR::: $@\n"
-        exit 1
+        printf "ERROR::: %s\n" "$@"
         ;;
         INFO|info)
-        printf "INFO::: $@\n"
+        printf "INFO::: %s\n" "$@"
         ;;
         WARN|warn)
-        printf "WARN::: $@\n"
+        printf "WARN::: %s\n" "$@"
         ;;
         *)
-        printf "INFO::: $@\n"
+        printf "INFO::: %s\n" "$@"
         ;;
     esac
 }
