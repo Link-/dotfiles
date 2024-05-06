@@ -1,6 +1,27 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
+log() {
+    case $1 in
+        ERROR|error)
+        printf "ERROR::: $@\n"
+        exit 1
+        ;;
+        INFO|info)
+        printf "INFO::: $@\n"
+        ;;
+        WARN|warn)
+        printf "WARN::: $@\n"
+        ;;
+        *)
+        printf "INFO::: $@\n"
+        ;;
+    esac
+}
+
 ## git configuration
+log info "Configuring git"
 git config --global push.autoSetupRemote true
 
 #@--------------------------------@#
@@ -10,9 +31,9 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 if ! command -v brew &> /dev/null
 then
-    echo "Homebrew could not be found. Skipping..."
+    log info "Homebrew could not be found. Skipping..)"
 else
-    echo "Installing fzf, bat, tree, jq, mycli, helm, pass"
+    log info "Installing fzf, bat, tree, jq, mycli, helm, pass"a
     HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli helm pass
 
     #@--------------------------------@#
@@ -21,49 +42,75 @@ else
     #   - Install shell completion
     #   - Do not update shell configuration files
     #@--------------------------------@#
-    echo "Configuring fzf keybindings and shell completion"
+    log info "Configuring fzf keybindings and shell completion"
     "$(brew --prefix)"/opt/fzf/install --key-bindings --completion
+fi
+
+#@--------------------------------@#
+# Download tools
+#@--------------------------------@#
+if ! command -v eza &> /dev/null
+then
+    log info "eza already installed. skipping.."
+else
+    log info "Downloading eza"
+    EZA_RELEASE_ASSET="eza_x86_64-unknown-linux-gnu.tar.gz" && \
+        gh release \
+        download -R eza-community/eza --clobber -D /tmp -p "$EZA_RELEASE_ASSET" && \
+        tar -xvf /tmp/"$EZA_RELEASE_ASSET" -C /tmp && \
+        sudo mv /tmp/eza /usr/local/bin/eza && \
+        sudo chmod +x /usr/local/bin/eza
 fi
 
 #@--------------------------------@#
 # Create a GPG key
 #@--------------------------------@#
 export GPG_TTY="$(tty)"
-echo "Generating GPG key"
+log info "Generating GPG key"
 gpg --batch --generate-key < .pass_key.metadata
-echo "Listing GPG keys"
+log info "Listing GPG keys"
 gpg --list-secret-keys --keyid-format LONG
 
 #@--------------------------------@#
 # Configuring vim and tmux
 #@--------------------------------@#
-echo "Installing vim pathogen"
+log info "Installing vim pathogen"
 mkdir -p ~/.vim/autoload ~/.vim/bundle && \
 curl -LSso ~/.vim/autoload/pathogen.vim https://raw.githubusercontent.com/tpope/vim-pathogen/master/autoload/pathogen.vim
 
-echo "Installing apprentice theme"
+log info "Installing apprentice theme"
 git clone https://github.com/romainl/Apprentice.git ~/.vim/bundle/apprentice
 
-echo "Copying .vimrc"
+log info "Copying .vimrc"
 cp .vimrc ~/.vimrc
 
-echo "Copying .tmux.conf"
+log info "Copying .tmux.conf"
 cp .tmux.conf ~/.tmux.conf
 
 #@--------------------------------@#
 # Codespaces specific
 #@--------------------------------@#
 echo "Updating PATH for zsh"
-echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.zshrc
-echo "PATH=$PATH:$(brew --prefix)/bin:/home/vscode/.local/bin" >> ~/.zshrc
-echo "alias dotfiles='cd /workspaces/.codespaces/.persistedshare/dotfiles'" >> ~/.zshrc
-echo "alias k='kubectl'" >> ~/.zshrc
-echo "alias logout='unset GITHUB_TOKEN'" >> ~/.zshrc
+{
+    echo "PATH=$PATH:$(brew --prefix)/bin:/home/vscode/.local/bin";
+    echo "alias dotfiles='cd /workspaces/.codespaces/.persistedshare/dotfiles'";
+    echo "alias k='kubectl'";
+    echo "alias ll='eza -la -g'";
+    echo "alias l='eza -la -g'";
+    # echo "alias logout='unset GITHUB_TOKEN'"
+} >> ~/.zshrc
+
 # Set theme
-echo "Switching theme to minimal"
+log info "Switching theme to minimal"
 omz theme use minimal || true
 # Install autosuggestions
+log info "Installing zsh-autosuggestions"
 git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+
+
+#@--------------------------------@#
+# Adding auto-completions
+#@--------------------------------@#
 # Kubectl completions
 kubectl completion zsh > "${fpath[1]}/_kubectl" || true
 # Helm completions
