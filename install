@@ -91,7 +91,7 @@ cp .tmux.conf ~/.tmux.conf
 #@--------------------------------@#
 # Codespaces specific
 #@--------------------------------@#
-echo "Updating PATH for zsh"
+log info "Updating PATH for zsh"
 {
     echo "PATH=$PATH:$(brew --prefix)/bin:/home/vscode/.local/bin";
     echo "alias dotfiles='cd /workspaces/.codespaces/.persistedshare/dotfiles'";
