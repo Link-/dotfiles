@@ -9,23 +9,23 @@ set -euo pipefail
 trap 'log "error" "Script failed at line $LINENO"' ERR
 
 log() {
-    case $1 in
-        ERROR|error)
-        shift
-        printf "ERROR::: %s\n" "$@"
-        ;;
-        INFO|info)
-        shift
-        printf "INFO::: %s\n" "$@"
-        ;;
-        WARN|warn)
-        shift
-        printf "WARN::: %s\n" "$@"
-        ;;
-        *)
-        printf "INFO::: %s\n" "$@"
-        ;;
-    esac
+	case $1 in
+	ERROR | error)
+		shift
+		printf "ERROR::: %s\n" "$@"
+		;;
+	INFO | info)
+		shift
+		printf "INFO::: %s\n" "$@"
+		;;
+	WARN | warn)
+		shift
+		printf "WARN::: %s\n" "$@"
+		;;
+	*)
+		printf "INFO::: %s\n" "$@"
+		;;
+	esac
 }
 
 ## git configuration
@@ -35,10 +35,9 @@ git config --global push.autoSetupRemote true
 #@--------------------------------@#
 # Check if homebrew is installed
 #@--------------------------------@#
-if test -z "$HOMEBREW_EXISTS"
-then
-    log info "Homebrew not found. Installing.."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+if test -z "$HOMEBREW_EXISTS"; then
+	log info "Homebrew not found. Installing.."
+	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
 
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
@@ -58,30 +57,29 @@ log info "Configuring fzf keybindings and shell completion"
 #@--------------------------------@#
 # Download tools
 #@--------------------------------@#
-if test -z "$EZA_EXISTS"
-then
-    log info "eza not found. Installing eza"
-    EZA_RELEASE_ASSET="eza_x86_64-unknown-linux-gnu.tar.gz" && \
-        gh release \
-        download -R eza-community/eza --clobber -D /tmp -p "$EZA_RELEASE_ASSET" && \
-        tar -xvf /tmp/"$EZA_RELEASE_ASSET" -C /tmp && \
-        sudo mv /tmp/eza /usr/local/bin/eza && \
-        sudo chmod +x /usr/local/bin/eza
+if test -z "$EZA_EXISTS"; then
+	log info "eza not found. Installing eza"
+	EZA_RELEASE_ASSET="eza_x86_64-unknown-linux-gnu.tar.gz" &&
+		gh release \
+			download -R eza-community/eza --clobber -D /tmp -p "$EZA_RELEASE_ASSET" &&
+		tar -xvf /tmp/"$EZA_RELEASE_ASSET" -C /tmp &&
+		sudo mv /tmp/eza /usr/local/bin/eza &&
+		sudo chmod +x /usr/local/bin/eza
 else
-    log info "eza already installed. skipping.."
+	log info "eza already installed. skipping.."
 fi
 
 # Move lnav
 log info "Moving lnav"
-sudo cp tools/lnav /usr/local/bin/lnav && \
-    sudo chmod +x /usr/local/bin/lnav
+sudo cp tools/lnav /usr/local/bin/lnav &&
+	sudo chmod +x /usr/local/bin/lnav
 
 #@--------------------------------@#
 # Configuring vim and tmux
 #@--------------------------------@#
 log info "Installing vim pathogen"
-mkdir -p ~/.vim/autoload ~/.vim/bundle && \
-curl -LSso ~/.vim/autoload/pathogen.vim https://raw.githubusercontent.com/tpope/vim-pathogen/master/autoload/pathogen.vim
+mkdir -p ~/.vim/autoload ~/.vim/bundle &&
+	curl -LSso ~/.vim/autoload/pathogen.vim https://raw.githubusercontent.com/tpope/vim-pathogen/master/autoload/pathogen.vim
 
 log info "Installing apprentice theme"
 git clone https://github.com/romainl/Apprentice.git ~/.vim/bundle/apprentice || true
@@ -95,31 +93,29 @@ cp .tmux.conf ~/.tmux.conf || true
 #@--------------------------------@#
 # Switching to zsh
 #@--------------------------------@#
-if test -z "$ZSH_EXISTS"
-then
-    log info "zsh not found. Installing.."
-    HOMEBREW_NO_AUTO_UPDATE=1 brew install zsh
+if test -z "$ZSH_EXISTS"; then
+	log info "zsh not found. Installing.."
+	HOMEBREW_NO_AUTO_UPDATE=1 brew install zsh
 else
-    log info "zsh already installed. skipping.."
+	log info "zsh already installed. skipping.."
 fi
 
 #@--------------------------------@#
 # Codespaces specific
 #@--------------------------------@#
 # Search for alias k='kubectl' in the ~/.zshrc and if found, skip
-if grep -q "alias k='kubectl'" ~/.zshrc
-then
-    log info "Aliases are pre-configured. skipping.."
+if grep -q "alias k='kubectl'" ~/.zshrc; then
+	log info "Aliases are pre-configured. skipping.."
 else
-    log info "Updating PATH for zsh"
-    {
-        echo "PATH=$PATH:$(brew --prefix)/bin:/home/vscode/.local/bin";
-        echo "alias dotfiles='cd /workspaces/.codespaces/.persistedshare/dotfiles'";
-        echo "alias k='kubectl'";
-        echo "alias ll='eza -la -g'";
-        echo "alias l='eza -la -g'";
-        # echo "alias logout='unset GITHUB_TOKEN'"
-    } >> ~/.zshrc
+	log info "Updating PATH for zsh"
+	{
+		echo "PATH=$PATH:$(brew --prefix)/bin:/home/vscode/.local/bin"
+		echo "alias dotfiles='cd /workspaces/.codespaces/.persistedshare/dotfiles'"
+		echo "alias k='kubectl'"
+		echo "alias ll='eza -la -g'"
+		echo "alias l='eza -la -g'"
+		# echo "alias logout='unset GITHUB_TOKEN'"
+	} >>~/.zshrc
 fi
 
 # Search for ZSH_THEME in ~/.zshrc and replace the value with "minimal"
@@ -133,15 +129,20 @@ git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-m
 # Adding auto-completions
 #@--------------------------------@#
 # Kubectl completions
-kubectl completion zsh > "${fpath[1]}/_kubectl" || true
+kubectl completion zsh >"${fpath[1]}/_kubectl" || true
 # Helm completions
-helm completion zsh > "${fpath[1]}/_helm" || true
+helm completion zsh >"${fpath[1]}/_helm" || true
 
 #@--------------------------------@#
 # Create a GPG key
 #@--------------------------------@#
 export GPG_TTY="$(tty)"
 log info "Generating GPG key"
-gpg --batch --generate-key < .pass_key.metadata || true
+gpg --batch --generate-key <.pass_key.metadata || true
 log info "Listing GPG keys"
 gpg --list-secret-keys --keyid-format LONG || true
+
+#@--------------------------------@#
+# tmux config
+#@--------------------------------@#
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm || true
