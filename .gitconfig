@@ -8,20 +8,23 @@
   defaultBranch = main
 
 [pull]
-  rebase = true
+	rebase = false
+
+[push]
+	autoSetupRemote = true
 
 [alias]
   # View abbreviated SHA, description, and history graph of the latest 20 commits.
   l = log --pretty=oneline -n 20 --graph --abbrev-commit
-
-  # View the list of commits belonging to a branch
-  changes = !"git log $1..HEAD --oneline"
 
   # Show the diff between the latest commit and the current state.
   d = !"git diff-index --quiet HEAD -- || clear; git --no-pager diff --patch-with-stat"
 
   # `git di $number` shows the diff between the state `$number` revisions ago and the current state.
   di = !"d() { git diff --patch-with-stat HEAD~$1; }; git diff-index --quiet HEAD -- || clear; d"
+
+  # Show the diff between HEAD and the main branch
+  progress = !"git log --pretty=format:'%C(yellow)%h  %Cblue%ad  %Creset%s%Cgreen  [%cn] %Cred%d' --decorate --date=short $1.."
 
   # Show verbose output about tags, branches or remotes
   tags = tag -l
@@ -41,7 +44,7 @@
   fc = "!f() { git log --pretty=format:'%C(yellow)%h  %Cblue%ad  %Creset%s%Cgreen  [%cn] %Cred%d' --decorate --date=short -S$1; }; f"
 
   # Find commits by commit message
-  fm = "!f() { git log --pretty=format:'%C(yellow)%h  %Cblue%ad  %Creset%s%Cgreen  [%cn] %Cred%d' --decorate --date=short --grep=$1; }; f"
+  fm = "!f() { git log --pretty=format:'%C(yellow)%h  %Cblue%ad  %Creset%s%Cgreen  [%cn] %Cred%d' --decorate --date=short --regexp-ignore-case --grep=\"$1\"; }; f"
 
   # Remove branches that have already been merged with main.
   # a.k.a. ‘delete merged’
@@ -55,3 +58,4 @@
 
   # Commit work in progress
   wip = "!git add --all; git ci -m WIP"
+
