@@ -12,18 +12,18 @@ log() {
 	case $1 in
 	ERROR | error)
 		shift
-		printf "ERROR::: %s\n" "$@"
+		printf "\033[31m[!] ERROR:::\033[0m %b\n" "$@"
 		;;
 	INFO | info)
 		shift
-		printf "INFO::: %s\n" "$@"
+		printf "\033[34m[+] INFO:::\033[0m %b\n" "$@"
 		;;
 	WARN | warn)
 		shift
-		printf "WARN::: %s\n" "$@"
+		printf "\033[33m[!] WARN:::\033[0m %b\n" "$@"
 		;;
 	*)
-		printf "INFO::: %s\n" "$@"
+		printf "\033[34m[+] INFO:::\033[0m %b\n" "$@"
 		;;
 	esac
 }
@@ -99,6 +99,17 @@ if test -z "$ZSH_EXISTS"; then
 else
 	log info "zsh already installed. skipping.."
 fi
+
+#@---------------------------------@#
+# Install omz
+#@---------------------------------@#
+log info "installing omz"
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
+#@---------------------------------@#
+# Install p10k
+#@---------------------------------@#
+git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
 
 #@--------------------------------@#
 # Codespaces specific
