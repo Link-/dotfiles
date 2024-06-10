@@ -103,8 +103,12 @@ fi
 #@---------------------------------@#
 # Install omz
 #@---------------------------------@#
-log info "installing omz"
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+if [ -d "~/.oh-my-zsh" ]; then
+  log info "omz already installed. skipping.."
+else
+  log info "installing omz"
+  sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+fi
 
 #@---------------------------------@#
 # Install p10k
