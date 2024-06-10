@@ -109,7 +109,8 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/too
 #@---------------------------------@#
 # Install p10k
 #@---------------------------------@#
-git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
+git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ~/powerlevel10k
+echo 'source ~/powerlevel10k/powerlevel10k.zsh-theme' >>~/.zshrc
 
 #@--------------------------------@#
 # Codespaces specific
@@ -147,7 +148,8 @@ helm completion zsh >"${fpath[1]}/_helm" || true
 #@--------------------------------@#
 # Create a GPG key
 #@--------------------------------@#
-export GPG_TTY="$(tty)"
+export GPG_TTY
+GPG_TTY=$(tty)
 log info "Generating GPG key"
 gpg --batch --generate-key <.pass_key.metadata || true
 log info "Listing GPG keys"
