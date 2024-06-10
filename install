@@ -103,11 +103,11 @@ fi
 #@---------------------------------@#
 # Install omz
 #@---------------------------------@#
-if [ -d "~/.oh-my-zsh" ]; then
-  log info "omz already installed. skipping.."
+if test -z "$ZSH"; then
+	  log info "installing omz"
+	  sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 else
-  log info "installing omz"
-  sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+	  log info "omz already installed. skipping.."
 fi
 
 #@---------------------------------@#
