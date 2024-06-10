@@ -37,13 +37,13 @@ git config --global push.autoSetupRemote true
 #@--------------------------------@#
 if test -z "$HOMEBREW_EXISTS"; then
 	log info "Homebrew not found. Installing.."
-	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
 fi
 
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 log info "Installing fzf, bat, tree, jq, mycli, helm, pass"
-HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli helm pass
+HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli helm pass || true
 
 #@--------------------------------@#
 # Configure fzf
@@ -52,7 +52,7 @@ HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli helm pass
 #   - Do not update shell configuration files
 #@--------------------------------@#
 log info "Configuring fzf keybindings and shell completion"
-"$(brew --prefix)"/opt/fzf/install --key-bindings --completion
+"$(brew --prefix)"/opt/fzf/install --key-bindings --completion || true
 
 #@--------------------------------@#
 # Download tools
