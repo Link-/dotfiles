@@ -43,7 +43,7 @@ fi
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 log info "Installing fzf, bat, tree, jq, mycli, helm, pass"
-HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli helm pass || true
+HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli helm || true
 
 #@--------------------------------@#
 # Configure fzf
