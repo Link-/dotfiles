@@ -59,3 +59,5 @@
   # Commit work in progress
   wip = "!git add --all; git ci -m WIP"
 
+  # Empty commit
+  empty = "!f() { !git commit --allow-empty -m \"$1\"; }; f"
