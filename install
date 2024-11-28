@@ -137,7 +137,7 @@ else
 fi
 
 # Search for ZSH_THEME in ~/.zshrc and replace the value with "minimal"
-sed -i -E 's/ZSH_THEME=\"[a-z]*\"/ZSH_THEME=\"minimal\"/g' ~/.zshrc
+# sed -i -E 's/ZSH_THEME=\"[a-z]*\"/ZSH_THEME=\"minimal\"/g' ~/.zshrc
 
 # Install autosuggestions
 log info "Installing zsh-autosuggestions"
