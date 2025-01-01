@@ -43,7 +43,7 @@ fi
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 log info "Installing fzf, bat, tree, jq, mycli, helm, zoxide"
-HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli helm zoxide gh || true
+HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli helm zoxide gh eza || true
 
 #@--------------------------------@#
 # Configure fzf
@@ -53,21 +53,6 @@ HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli helm zoxide gh || t
 #@--------------------------------@#
 log info "Configuring fzf keybindings and shell completion"
 "$(brew --prefix)"/opt/fzf/install --key-bindings --completion || true
-
-#@--------------------------------@#
-# Download tools
-#@--------------------------------@#
-if test -z "$EZA_EXISTS"; then
-	log info "eza not found. Installing eza"
-	EZA_RELEASE_ASSET="eza_x86_64-unknown-linux-gnu.tar.gz" &&
-		gh release \
-			download -R eza-community/eza --clobber -D /tmp -p "$EZA_RELEASE_ASSET" &&
-		tar -xvf /tmp/"$EZA_RELEASE_ASSET" -C /tmp &&
-		sudo mv /tmp/eza /usr/local/bin/eza &&
-		sudo chmod +x /usr/local/bin/eza
-else
-	log info "eza already installed. skipping.."
-fi
 
 # Move lnav
 log info "Moving lnav"
