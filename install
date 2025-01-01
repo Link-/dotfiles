@@ -103,7 +103,7 @@ fi
 #@---------------------------------@#
 # Install omz
 #@---------------------------------@#
-if test -z "$ZSH"; then
+if test -z "$ZSH_EXISTS"; then
 	  log info "installing omz"
 	  sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 else
