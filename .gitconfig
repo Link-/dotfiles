@@ -1,63 +1,92 @@
 [filter "lfs"]
-  clean = git-lfs clean -- %f
-  smudge = git-lfs smudge -- %f
-  process = git-lfs filter-process
-  required = true
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
 
 [init]
-  defaultBranch = main
+	defaultBranch = main
 
 [pull]
-	rebase = false
+	rebase = true
+
+[alias]
+	# View abbreviated SHA, description, and history graph of the latest 20 commits.
+	l = log --pretty=oneline -n 20 --graph --abbrev-commit
+	
+	# Show the diff between the latest commit and the current state.
+	d = !"git diff-index --quiet HEAD -- || clear; git --no-pager diff --patch-with-stat"
+	
+	# `git di $number` shows the diff between the state `$number` revisions ago and the current state.
+	di = !"d() { git diff --patch-with-stat HEAD~$1; }; git diff-index --quiet HEAD -- || clear; d"
+	
+	# Show the diff between HEAD and the main branch
+	progress = !"git log --pretty=format:'%C(yellow)%h  %Cblue%ad  %Creset%s%Cgreen  [%cn] %Cred%d' --decorate --date=short $1.."
+	
+	# Show verbose output about tags, branches or remotes
+	tags = tag -l
+	branches = branch --all
+	remotes = remote --verbose
+	
+	# Amend the currently staged files to the latest commit.
+	amend = commit --amend --reuse-message=HEAD
+	
+	# Find branches containing commit
+	fb = "!f() { git branch -a --contains $1; }; f"
+	
+	# Find tags containing commit
+	ft = "!f() { git describe --always --contains $1; }; f"
+	
+	# Find commits by source code
+	fc = "!f() { git log --pretty=format:'%C(yellow)%h  %Cblue%ad  %Creset%s%Cgreen  [%cn] %Cred%d' --decorate --date=short -S$1; }; f"
+	
+	# Find commits by commit message
+	fm = "!f() { git log --pretty=format:'%C(yellow)%h  %Cblue%ad  %Creset%s%Cgreen  [%cn] %Cred%d' --decorate --date=short --regexp-ignore-case --grep=\"$1\"; }; f"
+	
+	# Remove branches that have already been merged with main.
+	# a.k.a. ‘delete merged’
+	dm = "!git branch --merged | grep -v '\\*' | xargs -n 1 git branch -d"
+	
+	# List contributors with number of commits.
+	contributors = shortlog --summary --numbered
+	
+	# Soft reset
+	undo = "!git reset --soft HEAD^"
+	
+	# Commit work in progress
+	wip = "!git add --all; git ci -m WIP"
+	
+	# Empty commit
+	empty = "!f() { git commit --allow-empty -m \"$1\"; }; f"
 
 [push]
 	autoSetupRemote = true
 
-[alias]
-  # View abbreviated SHA, description, and history graph of the latest 20 commits.
-  l = log --pretty=oneline -n 20 --graph --abbrev-commit
+[core]
+	editor = code --wait
 
-  # Show the diff between the latest commit and the current state.
-  d = !"git diff-index --quiet HEAD -- || clear; git --no-pager diff --patch-with-stat"
+[column]
+	ui = auto
 
-  # `git di $number` shows the diff between the state `$number` revisions ago and the current state.
-  di = !"d() { git diff --patch-with-stat HEAD~$1; }; git diff-index --quiet HEAD -- || clear; d"
+[branch]
+	sort = -committerdate
 
-  # Show the diff between HEAD and the main branch
-  progress = !"git log --pretty=format:'%C(yellow)%h  %Cblue%ad  %Creset%s%Cgreen  [%cn] %Cred%d' --decorate --date=short $1.."
+[tag]
+	sort = version:refname
 
-  # Show verbose output about tags, branches or remotes
-  tags = tag -l
-  branches = branch --all
-  remotes = remote --verbose
+[diff]
+	algorithm = histogram
+	colorMoved = plain
+	mnemonicPrefix = true
+	renames = true
 
-  # Amend the currently staged files to the latest commit.
-  amend = commit --amend --reuse-message=HEAD
+[help]
+	autocorrect = prompt
 
-  # Find branches containing commit
-  fb = "!f() { git branch -a --contains $1; }; f"
+[commit]
+	verbose = true
 
-  # Find tags containing commit
-  ft = "!f() { git describe --always --contains $1; }; f"
-
-  # Find commits by source code
-  fc = "!f() { git log --pretty=format:'%C(yellow)%h  %Cblue%ad  %Creset%s%Cgreen  [%cn] %Cred%d' --decorate --date=short -S$1; }; f"
-
-  # Find commits by commit message
-  fm = "!f() { git log --pretty=format:'%C(yellow)%h  %Cblue%ad  %Creset%s%Cgreen  [%cn] %Cred%d' --decorate --date=short --regexp-ignore-case --grep=\"$1\"; }; f"
-
-  # Remove branches that have already been merged with main.
-  # a.k.a. ‘delete merged’
-  dm = "!git branch --merged | grep -v '\\*' | xargs -n 1 git branch -d"
-
-  # List contributors with number of commits.
-  contributors = shortlog --summary --numbered
-
-  # Soft reset
-  undo = "!git reset --soft HEAD^"
-
-  # Commit work in progress
-  wip = "!git add --all; git ci -m WIP"
-
-  # Empty commit
-  empty = "!f() { !git commit --allow-empty -m \"$1\"; }; f"
+[rebase]
+	autoSquash = true
+	autoStash = true
+	updateRefs = true
