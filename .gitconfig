@@ -1,12 +1,15 @@
+# Configuration for Git Large File Storage (LFS)
 [filter "lfs"]
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
 	process = git-lfs filter-process
 	required = true
 
+# Sets the default branch name when initializing a new repository
 [init]
 	defaultBranch = main
 
+# Makes git pull use rebase instead of merge by default
 [pull]
 	rebase = true
 
@@ -44,48 +47,56 @@
 	fm = "!f() { git log --pretty=format:'%C(yellow)%h  %Cblue%ad  %Creset%s%Cgreen  [%cn] %Cred%d' --decorate --date=short --regexp-ignore-case --grep=\"$1\"; }; f"
 	
 	# Remove branches that have already been merged with main.
-	# a.k.a. ‘delete merged’
 	dm = "!git branch --merged | grep -v '\\*' | xargs -n 1 git branch -d"
 	
 	# List contributors with number of commits.
 	contributors = shortlog --summary --numbered
 	
-	# Soft reset
+	# Soft reset to undo last commit while keeping changes staged
 	undo = "!git reset --soft HEAD^"
 	
-	# Commit work in progress
+	# Quickly commit all changes as work in progress
 	wip = "!git add --all; git ci -m WIP"
 	
-	# Empty commit
+	# Create an empty commit with a message
 	empty = "!f() { git commit --allow-empty -m \"$1\"; }; f"
 
+# Automatically sets up remote tracking when pushing a new branch
 [push]
 	autoSetupRemote = true
 
+# Sets VS Code as the default editor for git commit messages
 [core]
 	editor = code --wait
 
+# Displays branch and tag lists in columns for better readability
 [column]
 	ui = auto
 
+# Sorts branches by most recent commit date
 [branch]
 	sort = -committerdate
 
+# Sorts tags by version number instead of alphabetically
 [tag]
 	sort = version:refname
 
+# Improves diff output with better algorithms and visualization
 [diff]
 	algorithm = histogram
 	colorMoved = plain
 	mnemonicPrefix = true
 	renames = true
 
+# Prompts to autocorrect mistyped Git commands
 [help]
 	autocorrect = prompt
 
+# Shows diff in commit message editor
 [commit]
 	verbose = true
 
+# Enhances rebase operations with automatic stashing and reference updates
 [rebase]
 	autoSquash = true
 	autoStash = true
