@@ -59,6 +59,11 @@ log info "Moving lnav"
 sudo cp tools/lnav /usr/local/bin/lnav &&
 	sudo chmod +x /usr/local/bin/lnav
 
+# Move datefmt
+log info "Moving datefmt"
+sudo cp tools/date /usr/local/bin/datefmt &&
+	sudo chmod +x /usr/local/bin/datefmt
+
 #@--------------------------------@#
 # Configuring vim and tmux
 #@--------------------------------@#
