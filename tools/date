@@ -1,0 +1,257 @@
+#!/bin/bash
+
+# Check which date version we're using (GNU or BSD)
+DATE_VERSION="gnu"
+if date -v +1d >/dev/null 2>&1; then
+    DATE_VERSION="bsd"
+fi
+
+# Function to adjust date based on system type
+adjust_date() {
+    local format="$1"
+    local delta="$2"
+    
+    if [ "$DATE_VERSION" = "gnu" ]; then
+        # GNU date uses -d
+        date -d "$delta" "$format"
+    else
+        # BSD date uses -v for each adjustment
+        # We need to parse the delta and apply each adjustment separately
+        local date_cmd="date"
+        
+        # Extract the sign, number and unit
+        if [[ "$delta" =~ ([+-]?)([0-9]+)\ *(s|seconds?|m|minutes?|h|hours?|d|days?|w|weeks?|M|months?|y|years?) ]]; then
+            local sign=${BASH_REMATCH[1]}
+            local num=${BASH_REMATCH[2]}
+            local unit=${BASH_REMATCH[3]}
+            
+            # If no sign is specified, assume positive
+            if [ -z "$sign" ]; then
+                sign="+"
+            fi
+            
+            # Map unit to BSD date format
+            case "$unit" in
+                s|second|seconds)
+                    date_cmd="$date_cmd -v ${sign}${num}S"
+                    ;;
+                m|minute|minutes)
+                    date_cmd="$date_cmd -v ${sign}${num}M"
+                    ;;
+                h|hour|hours)
+                    date_cmd="$date_cmd -v ${sign}${num}H"
+                    ;;
+                d|day|days)
+                    date_cmd="$date_cmd -v ${sign}${num}d"
+                    ;;
+                w|week|weeks)
+                    # BSD date doesn't have a week option, convert to days
+                    local days=$((num * 7))
+                    date_cmd="$date_cmd -v ${sign}${days}d"
+                    ;;
+                M|month|months)
+                    date_cmd="$date_cmd -v ${sign}${num}m"
+                    ;;
+                y|year|years)
+                    date_cmd="$date_cmd -v ${sign}${num}y"
+                    ;;
+            esac
+            
+            eval "$date_cmd $format"
+        else
+            echo "Error: Invalid time delta format" >&2
+            exit 1
+        fi
+    fi
+}
+
+# Define usage function
+usage() {
+    echo "Usage: $0 <format> [time_delta]"
+    echo ""
+    echo "Available formats:"
+    echo "  iso     - ISO 8601 format (YYYY-MM-DDTHH:MM:SS)"
+    echo "  short   - Short date and time (MM/DD/YY HH:MM)"
+    echo "  long    - Long format with weekday (Day Month DD HH:MM:SS YYYY)"
+    echo "  date    - Date only (YYYY-MM-DD)"
+    echo "  time    - Time only (HH:MM:SS)"
+    echo "  unix    - Unix timestamp (seconds since epoch)"
+    echo "  custom  - Custom format (uses date command format options)"
+    echo "  list    - Show all available formats with examples"
+    echo ""
+    echo "Optional time_delta:"
+    echo "  Specify a time offset from now (positive for future, negative for past)"
+    echo "  Examples: '10 minutes', '-3 days', '+1 hour', '2 weeks', '-30s', '+5h', '+2d'"
+    echo "  Note: For negative time deltas, use quotes: \"$0 iso '-10 minutes'\" or use short form: \"$0 iso -10m\""
+    echo "  Supported units: s/seconds, m/minutes, h/hours, d/days, w/weeks, M/months, y/years"
+    echo ""
+    if [ "$DATE_VERSION" = "bsd" ]; then
+        echo "Note: Running on BSD date (macOS). Some complex time formats may not work as expected."
+    fi
+    exit 1
+}
+
+# Function to convert short time units to full format
+convert_time_delta() {
+    local delta="$1"
+    
+    # Handle short notations
+    delta=$(echo "$delta" | sed -E 's/([+-]?[0-9]+)s$/\1 seconds/')
+    delta=$(echo "$delta" | sed -E 's/([+-]?[0-9]+)m$/\1 minutes/')
+    delta=$(echo "$delta" | sed -E 's/([+-]?[0-9]+)h$/\1 hours/')
+    delta=$(echo "$delta" | sed -E 's/([+-]?[0-9]+)d$/\1 days/')
+    delta=$(echo "$delta" | sed -E 's/([+-]?[0-9]+)w$/\1 weeks/')
+    delta=$(echo "$delta" | sed -E 's/([+-]?[0-9]+)M$/\1 months/')
+    delta=$(echo "$delta" | sed -E 's/([+-]?[0-9]+)y$/\1 years/')
+    
+    echo "$delta"
+}
+
+# Function to display format examples
+show_examples() {
+    current_date=$(date)
+    echo "Format Examples (current date: $current_date)"
+    echo "-----------------------------------------------"
+    echo "iso:    $(date "+%Y-%m-%dT%H:%M:%S")"
+    echo "short:  $(date "+%m/%d/%y %H:%M")"
+    echo "long:   $(date "+%A %B %d %H:%M:%S %Y")"
+    echo "date:   $(date "+%Y-%m-%d")"
+    echo "time:   $(date "+%H:%M:%S")"
+    echo "unix:   $(date "+%s")"
+    echo ""
+    echo "With time delta examples:"
+    echo "-----------------------------------------------"
+    
+    if [ "$DATE_VERSION" = "gnu" ]; then
+        echo "$0 date '+1 day'      -> $(date -d "+1 day" "+%Y-%m-%d")"
+        echo "$0 short '-2 hours'   -> $(date -d "-2 hours" "+%m/%d/%y %H:%M")"
+        echo "$0 iso '+1w'          -> $(date -d "+1 week" "+%Y-%m-%dT%H:%M:%S")"
+    else
+        echo "$0 date '+1 day'      -> $(date -v +1d "+%Y-%m-%d")"
+        echo "$0 short '-2 hours'   -> $(date -v -2H "+%m/%d/%y %H:%M")"
+        echo "$0 iso '+1w'          -> $(date -v +7d "+%Y-%m-%dT%H:%M:%S")"
+    fi
+    
+    echo ""
+    echo "For custom formats, use format specifiers like:"
+    echo "  %Y - Year (4 digits)"
+    echo "  %m - Month (01-12)"
+    echo "  %d - Day of month (01-31)"
+    echo "  %H - Hour (00-23)"
+    echo "  %M - Minute (00-59)"
+    echo "  %S - Second (00-59)"
+    echo "  %A - Full weekday name"
+    echo "  %B - Full month name"
+    echo ""
+    
+    if [ "$DATE_VERSION" = "gnu" ]; then
+        echo "Example: $0 custom \"+%Y/%m/%d %H:%M\" \"-3 days\""
+        echo "Result:  $(date -d "-3 days" "+%Y/%m/%d %H:%M")"
+    else
+        echo "Example: $0 custom \"+%Y/%m/%d %H:%M\" \"-3 days\""
+        echo "Result:  $(date -v -3d "+%Y/%m/%d %H:%M")"
+    fi
+    
+    exit 0
+}
+
+# Check if argument is provided
+if [ $# -eq 0 ]; then
+    usage
+fi
+
+format="$1"
+time_delta=""
+
+# Check if time delta is provided
+if [ $# -ge 2 ]; then
+    if [ "$format" = "custom" ]; then
+        # For custom format, the third argument is time delta
+        if [ $# -ge 3 ]; then
+            # If the delta starts with a minus sign, we need to handle it as a single argument
+            if [[ "$3" == -* && $# -ge 4 ]]; then
+                time_delta=$(convert_time_delta "$3 $4")
+            else
+                time_delta=$(convert_time_delta "$3")
+            fi
+        fi
+    else
+        # For predefined formats, the second argument is time delta
+        # If the delta starts with a minus sign, we need to handle it as a single argument
+        if [[ "$2" == -* && $# -ge 3 ]]; then
+            time_delta=$(convert_time_delta "$2 $3")
+        else
+            time_delta=$(convert_time_delta "$2")
+        fi
+    fi
+fi
+
+# No longer need the date_cmd variable as we're using adjust_date function
+
+# Process format argument
+case "$format" in
+    iso)
+        if [ -n "$time_delta" ]; then
+            adjust_date "+%Y-%m-%dT%H:%M:%S" "$time_delta"
+        else
+            date "+%Y-%m-%dT%H:%M:%S"
+        fi
+        ;;
+    short)
+        if [ -n "$time_delta" ]; then
+            adjust_date "+%m/%d/%y %H:%M" "$time_delta"
+        else
+            date "+%m/%d/%y %H:%M"
+        fi
+        ;;
+    long)
+        if [ -n "$time_delta" ]; then
+            adjust_date "+%A %B %d %H:%M:%S %Y" "$time_delta"
+        else
+            date "+%A %B %d %H:%M:%S %Y"
+        fi
+        ;;
+    date)
+        if [ -n "$time_delta" ]; then
+            adjust_date "+%Y-%m-%d" "$time_delta"
+        else
+            date "+%Y-%m-%d"
+        fi
+        ;;
+    time)
+        if [ -n "$time_delta" ]; then
+            adjust_date "+%H:%M:%S" "$time_delta"
+        else
+            date "+%H:%M:%S"
+        fi
+        ;;
+    unix)
+        if [ -n "$time_delta" ]; then
+            adjust_date "+%s" "$time_delta"
+        else
+            date "+%s"
+        fi
+        ;;
+    list)
+        show_examples
+        ;;
+    custom)
+        if [ -z "$2" ]; then
+            echo "Error: Custom format requires a format string"
+            echo "Example: $0 custom \"+%Y-%m-%d\""
+            exit 1
+        fi
+        
+        if [ -n "$time_delta" ]; then
+            adjust_date "$2" "$time_delta"
+        else
+            date "$2"
+        fi
+        ;;
+    *)
+        echo "Error: Unknown format '$format'"
+        usage
+        ;;
+esac
+
+exit 0
