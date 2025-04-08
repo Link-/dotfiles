@@ -144,16 +144,16 @@ helm completion zsh >"${fpath[1]}/_helm" || true
 #@--------------------------------@#
 # Create a GPG key
 #@--------------------------------@#
-export GPG_TTY
-GPG_TTY=$(tty)
-if test -t 0; then
-	log info "Generating GPG key"
-	gpg --batch --generate-key <.pass_key.metadata || true
-	log info "Listing GPG keys"
-	gpg --list-secret-keys --keyid-format LONG || true
-else
-	log info "GPG key generation skipped. Not running in interactive mode"
-fi
+#export GPG_TTY
+#GPG_TTY=$(tty)
+#if test -t 0; then
+#	log info "Generating GPG key"
+#	gpg --batch --generate-key <.pass_key.metadata || true
+#	log info "Listing GPG keys"
+#	gpg --list-secret-keys --keyid-format LONG || true
+#else
+#	log info "GPG key generation skipped. Not running in interactive mode"
+#fi
 
 #@--------------------------------@#
 # tmux config
