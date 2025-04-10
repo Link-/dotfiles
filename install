@@ -122,6 +122,7 @@ else
 		echo "alias k='kubectl'"
 		echo "alias ll='eza -la -g'"
 		echo "alias l='eza -la -g'"
+		echo "alias get_token=\"cat ~/.config/gh/hosts.yml | grep oauth_token | head -1 | cut -d ':' -f 2 | awk '{print $1}'\""
 		# echo "alias logout='unset GITHUB_TOKEN'"
 	} >>~/.zshrc
 fi
