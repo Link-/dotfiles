@@ -52,7 +52,7 @@ HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli helm zoxide gh eza 
 #   - Do not update shell configuration files
 #@--------------------------------@#
 log info "Configuring fzf keybindings and shell completion"
-"$(brew --prefix)"/opt/fzf/install --key-bindings --completion || true
+"$(brew --prefix)"/opt/fzf/install --key-bindings --completion --all || true
 
 # Move lnav
 log info "Moving lnav"
@@ -122,13 +122,10 @@ else
 		echo "alias k='kubectl'"
 		echo "alias ll='eza -la -g'"
 		echo "alias l='eza -la -g'"
-		echo "alias get_token=\"cat ~/.config/gh/hosts.yml | grep oauth_token | head -1 | cut -d ':' -f 2 | awk '{print $1}'\""
+		# echo "alias get_token=\"cat ~/.config/gh/hosts.yml | grep oauth_token | head -1 | cut -d ':' -f 2 | awk '{print $1}'\""
 		# echo "alias logout='unset GITHUB_TOKEN'"
 	} >>~/.zshrc
 fi
-
-# Search for ZSH_THEME in ~/.zshrc and replace the value with "minimal"
-# sed -i -E 's/ZSH_THEME=\"[a-z]*\"/ZSH_THEME=\"minimal\"/g' ~/.zshrc
 
 # Install autosuggestions
 log info "Installing zsh-autosuggestions"
@@ -160,3 +157,28 @@ helm completion zsh >"${fpath[1]}/_helm" || true
 # tmux config
 #@--------------------------------@#
 git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm || true
+
+#@--------------------------------@#
+# merge .zshrc files
+#@--------------------------------@#
+
+# Output file
+OUTPUT_FILE=~/.zshrc.new
+
+# Source files
+DOTFILES_ZSHRC=".zshrc"
+ORIGINAL_ZSHRC="$HOME/.zshrc"
+
+# Extract the first part from dotfiles .zshrc (up to but not including the aliases line)
+sed -n '1,/# Set personal aliases/p' "$DOTFILES_ZSHRC" > "$OUTPUT_FILE"
+
+# Append the second part from original .zshrc (from the aliases line to the end)
+sed -n '/# Set personal aliases/,$p' "$ORIGINAL_ZSHRC" >> "$OUTPUT_FILE"
+
+# Backup the original .zshrc and replace it with the new one
+mv "$ORIGINAL_ZSHRC" "$ORIGINAL_ZSHRC.bak"
+mv "$OUTPUT_FILE" "$ORIGINAL_ZSHRC"
+chmod +x "$ORIGINAL_ZSHRC"
+
+echo "Your .zshrc has been updated successfully!"
+echo "The original file was backed up at $ORIGINAL_ZSHRC.bak"
