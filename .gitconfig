@@ -10,8 +10,8 @@
 	defaultBranch = main
 
 # Makes git pull use rebase instead of merge by default
-[pull]
-	rebase = true
+#[pull]
+#	rebase = true
 
 [alias]
 	# View abbreviated SHA, description, and history graph of the latest 20 commits.
@@ -97,7 +97,7 @@
 	verbose = true
 
 # Enhances rebase operations with automatic stashing and reference updates
-[rebase]
-	autoSquash = true
-	autoStash = true
-	updateRefs = true
+#[rebase]
+#	autoSquash = true
+#	autoStash = true
+#	updateRefs = true
