@@ -1,0 +1,266 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+trap 'log "error" "Script failed at line $LINENO"' ERR
+
+# Global variable for dry-run mode
+DRY_RUN=false
+
+log() {
+	case $1 in
+	ERROR | error)
+		shift
+		printf "\033[31m[!] ERROR:::\033[0m %b\n" "$@"
+		;;
+	INFO | info)
+		shift
+		printf "\033[34m[+] INFO:::\033[0m %b\n" "$@"
+		;;
+	WARN | warn)
+		shift
+		printf "\033[33m[!] WARN:::\033[0m %b\n" "$@"
+		;;
+	*)
+		printf "\033[34m[+] INFO:::\033[0m %b\n" "$@"
+		;;
+	esac
+}
+
+# Check if gh CLI is available
+if ! command -v gh &> /dev/null; then
+	log error "GitHub CLI (gh) is not installed or not in PATH"
+	exit 1
+fi
+
+# Check if user is authenticated
+if ! gh auth status &> /dev/null; then
+	log error "Not authenticated with GitHub CLI. Run 'gh auth login' first"
+	exit 1
+fi
+
+# Function to get current codespace name
+get_current_codespace() {
+	gh codespace list --json name,gitStatus | jq -r '.[] | select(.gitStatus.ahead > 0 or .gitStatus.behind > 0 or .gitStatus.hasUnpushedChanges) | .name' | head -1
+}
+
+# Function to list available codespaces
+list_codespaces() {
+	log info "Available codespaces:"
+	gh codespace list --json name,displayName,state | jq -r '.[] | select(.state == "Available") | "  - \(.name) (\(.displayName))"'
+}
+
+# Function to list codespaces with numbers for interactive selection
+list_codespaces_numbered() {
+	log info "Available codespaces:"
+	local counter=1
+	while IFS= read -r line; do
+		echo "  $counter. $line"
+		((counter++))
+	done < <(gh codespace list --json name,displayName,state | jq -r '.[] | select(.state == "Available") | "\(.name) (\(.displayName))"')
+}
+
+# Function to get all available codespace names as an array
+get_available_codespaces() {
+	gh codespace list --json name,displayName,state | jq -r '.[] | select(.state == "Available") | .name'
+}
+
+# Function to sync file from local to target codespace
+sync_file() {
+	local target_cs="$1"
+	local file_path="$2"
+	
+	# Check if the path contains glob patterns
+	if [[ "$file_path" == *"*"* || "$file_path" == *"?"* || "$file_path" == *"["* ]]; then
+		# Handle glob pattern - expand it
+		# shellcheck disable=SC2206
+		local expanded_files=($file_path)
+		
+		if [[ ${#expanded_files[@]} -eq 1 && "${expanded_files[0]}" == "$file_path" ]]; then
+			# Glob didn't match any files
+			log warn "No files found matching pattern: $file_path"
+			return
+		fi
+		
+		# Sync each matched file
+		for matched_file in "${expanded_files[@]}"; do
+			if test -f "$matched_file"; then
+				if [[ "$DRY_RUN" == "true" ]]; then
+					log info "[DRY RUN] Would sync: $matched_file to $target_cs"
+				else
+					log info "Syncing $matched_file to $target_cs"
+					if gh cs cp -c "$target_cs" -r "$matched_file" "remote:$matched_file" 2>/dev/null; then
+						log info "✓ Successfully synced: $matched_file"
+					else
+						log warn "Failed to sync: $matched_file (permission denied or target codespace unavailable)"
+					fi
+				fi
+			else
+				log warn "File $matched_file does not exist locally"
+			fi
+		done
+	else
+		# Handle regular file path
+		# Check if file exists locally
+		if test -f "$file_path"; then
+			if [[ "$DRY_RUN" == "true" ]]; then
+				log info "[DRY RUN] Would sync: $file_path to $target_cs"
+			else
+				log info "Syncing $file_path to $target_cs"
+				# Copy file from local to target
+				if gh cs cp -c "$target_cs" -r "$file_path" "remote:$file_path" 2>/dev/null; then
+					log info "✓ Successfully synced: $file_path"
+				else
+					log warn "Failed to sync: $file_path (permission denied or target codespace unavailable)"
+				fi
+			fi
+		else
+			log warn "File $file_path does not exist locally"
+		fi
+	fi
+}
+
+# Function to sync all configured files
+sync_all_files() {
+	local target_cs="$1"
+	
+	local files_to_sync=(
+		"/home/vscode/.zshrc"
+		"/home/vscode/.zsh_history"
+		"/home/vscode/.ssh/id_*"
+	)
+	
+	if [[ "$DRY_RUN" == "true" ]]; then
+		log info "Starting DRY RUN sync from local to $target_cs"
+	else
+		log info "Starting sync from local to $target_cs"
+	fi
+	
+	for file in "${files_to_sync[@]}"; do
+		sync_file "$target_cs" "$file"
+	done
+	
+	if [[ "$DRY_RUN" == "true" ]]; then
+		log info "DRY RUN completed!"
+	else
+		log info "Sync completed!"
+	fi
+}
+
+# Main script logic
+main() {
+	log info "Codespace File Sync Tool"
+	log info "========================"
+	
+	# Parse command line arguments
+	# Check if we should run in interactive mode (no args or only --dry-run)
+	local interactive_mode=false
+	if [[ $# -eq 0 ]] || [[ $# -eq 1 && "$1" == "--dry-run" ]]; then
+		interactive_mode=true
+		# Set dry-run if it's the only argument
+		if [[ $# -eq 1 && "$1" == "--dry-run" ]]; then
+			DRY_RUN=true
+		fi
+	fi
+	
+	if [[ "$interactive_mode" == "true" ]]; then
+		log info "Usage: $0 [OPTIONS]"
+		log info "Options:"
+		log info "  --list, -l              List available codespaces"
+		log info "  --to <target>           Target codespace name"
+		log info "  --dry-run               Show what would be synced without actually doing it"
+		log info "  --help, -h              Show this help message"
+		log info ""
+		log info "Interactive mode will be used if no options provided"
+		log info "Files will be synced FROM this local codespace TO the target"
+		echo ""
+		
+		# Interactive mode
+		list_codespaces_numbered
+		echo ""
+		
+		# Get available codespaces into an array
+		mapfile -t available_codespaces < <(get_available_codespaces)
+		
+		if [[ ${#available_codespaces[@]} -eq 0 ]]; then
+			log error "No available codespaces found"
+			exit 1
+		fi
+		
+		read -p "Enter number (1-${#available_codespaces[@]}): " selection
+		
+		# Validate selection is a number
+		if ! [[ "$selection" =~ ^[0-9]+$ ]]; then
+			log error "Invalid input. Please enter a number."
+			exit 1
+		fi
+		
+		# Validate selection is within range
+		if [[ "$selection" -lt 1 || "$selection" -gt ${#available_codespaces[@]} ]]; then
+			log error "Invalid selection. Please enter a number between 1 and ${#available_codespaces[@]}."
+			exit 1
+		fi
+		
+		# Get the codespace name (arrays are 0-indexed, so subtract 1)
+		target_codespace="${available_codespaces[$((selection - 1))]}"
+		
+		if [[ -z "$target_codespace" ]]; then
+			log error "Failed to get codespace name"
+			exit 1
+		fi
+		
+		sync_all_files "$target_codespace"
+		return 0
+	fi
+	
+	local target_cs=""
+	
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			--list|-l)
+				list_codespaces
+				exit 0
+				;;
+			--to)
+				target_cs="$2"
+				shift 2
+				;;
+			--dry-run)
+				DRY_RUN=true
+				shift
+				;;
+			--help|-h)
+				echo "Usage: $0 [OPTIONS]"
+				echo "Options:"
+				echo "  --list, -l              List available codespaces"
+				echo "  --to <target>           Target codespace name"
+				echo "  --dry-run               Show what would be synced without actually doing it"
+				echo "  --help, -h              Show this help message"
+				echo ""
+				echo "This tool syncs files FROM the current local codespace TO a target codespace."
+				echo ""
+				echo "Files synced:"
+				echo "  - /home/vscode/.zshrc"
+				echo "  - /home/vscode/.zsh_history"
+				echo "  - /home/vscode/.ssh/id_*"
+				exit 0
+				;;
+			*)
+				log error "Unknown option: $1"
+				log info "Use --help for usage information"
+				exit 1
+				;;
+		esac
+	done
+	
+	if [[ -z "$target_cs" ]]; then
+		log error "Target codespace name is required (use --to <target>)"
+		log info "Use --list to see available codespaces"
+		log info "Use --help for usage information"
+		exit 1
+	fi
+	
+	sync_all_files "$target_cs"
+}
+
+main "$@"
