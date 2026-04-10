@@ -64,6 +64,10 @@ log info "Moving datefmt"
 sudo cp tools/date /usr/local/bin/datefmt &&
 	sudo chmod +x /usr/local/bin/datefmt
 
+# Symlink start_ssh_agent
+log info "Linking start_ssh_agent"
+sudo ln -sf "$(pwd)/start_ssh_agent.sh" /usr/local/bin/start_ssh_agent
+
 #@--------------------------------@#
 # Configuring vim and tmux
 #@--------------------------------@#
