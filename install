@@ -42,8 +42,8 @@ fi
 
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
-log info "Installing fzf, bat, tree, jq, mycli, helm, zoxide"
-HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli helm zoxide gh eza || true
+log info "Installing fzf bat tree jq mycli helm zoxide gh eza goenv copilot-cli"
+HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli helm zoxide gh eza goenv copilot-cli || true
 
 #@--------------------------------@#
 # Configure fzf
