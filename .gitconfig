@@ -61,6 +61,15 @@
 	# Create an empty commit with a message
 	empty = "!f() { git commit --allow-empty -m \"$1\"; }; f"
 
+	# Create an empty commit with a message
+	empty = "!f() { git commit --allow-empty -m \"$1\"; }; f"
+
+	# Show the current branch name (useful in scripts)
+	current = rev-parse --abbrev-ref HEAD
+
+	# Reset hard but keep a backup branch first
+	nah = "!git branch backup/$(git current)-$(date +%s) && git reset --    hard HEAD && git clean -df"
+
 # Automatically sets up remote tracking when pushing a new branch
 [push]
 	autoSetupRemote = true
