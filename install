@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 HOMEBREW_EXISTS="$(command -v brew)"
-EZA_EXISTS="$(command -v eza)"
 ZSH_EXISTS="$(command -v zsh)"
 
 set -euo pipefail
@@ -28,10 +27,6 @@ log() {
 	esac
 }
 
-## git configuration
-log info "Configuring git"
-git config --global push.autoSetupRemote true
-
 #@--------------------------------@#
 # Check if homebrew is installed
 #@--------------------------------@#
@@ -42,7 +37,7 @@ fi
 
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
-log info "Installing fzf bat tree jq mycli helm zoxide gh eza goenv copilot-cli"
+log info "Installing fzf bat tree jq mycli helm zoxide gh eza goenv copilot-cli vim"
 HOMEBREW_NO_AUTO_UPDATE=1 brew install fzf bat tree jq mycli helm zoxide gh eza goenv copilot-cli || true
 
 #@--------------------------------@#
@@ -93,6 +88,12 @@ if test -z "$ZSH_EXISTS"; then
 else
 	log info "zsh already installed. skipping.."
 fi
+
+#@--------------------------------@#
+# Copying gitconfig
+#@--------------------------------@#
+log info "Copying .gitconfig"
+cp .gitconfig ~/.gitconfig || true
 
 #@---------------------------------@#
 # Install omz
