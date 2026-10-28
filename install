@@ -27,6 +27,9 @@ log() {
 	esac
 }
 
+log info "Installing shared agent instructions"
+bash "$(dirname -- "${BASH_SOURCE[0]}")/install_agent_instructions"
+
 #@--------------------------------@#
 # Check if homebrew is installed
 #@--------------------------------@#
