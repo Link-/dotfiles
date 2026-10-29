@@ -1,392 +1,155 @@
 #!/usr/bin/env bash
+#
+# Set up this machine from the dotfiles repo.
+# Every step runs even if an earlier one failed. Failed steps are listed at
+# the end and the script exits with status 1.
 
-set -uo pipefail
+cd "$(dirname "$0")" || exit 1
+DOTFILES="$PWD"
+failed_steps=()
 
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)" || exit 1
-WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-install.XXXXXX")" || exit 1
-trap 'rm -r -- "$WORK_DIR"' EXIT
+info() { printf '\033[34m[+]\033[0m %s\n' "$*"; }
+error() { printf '\033[31m[!] ERROR:\033[0m %s\n' "$*" >&2; }
 
-failures=0
-BREW=""
-OMZ_DIR="${ZSH:-$HOME/.oh-my-zsh}"
-COMPLETIONS_DIR="$HOME/.zsh/completions"
-
-info() { printf 'INFO: %s\n' "$*"; }
-error() { printf 'ERROR: %s\n' "$*" >&2; }
-die() { error "$*"; exit 1; }
-
-# Each step stops on its first error; the parent keeps running other steps.
-run_step() {
-	local label="$1" status
+# Run one step. On failure, print an error, remember it and carry on.
+step() {
+	local name="$1"
 	shift
-	info "$label"
-	(
-		set -e
-		"$@"
-	)
-	status=$?
-	if [[ "$status" -ne 0 ]]; then
-		error "$label failed (status $status)"
-		failures=$((failures + 1))
+	info "$name"
+	if ! "$@"; then
+		error "$name failed"
+		failed_steps+=("$name")
 	fi
-	return "$status"
 }
 
-skip_step() {
-	error "$1 skipped: $2"
-	failures=$((failures + 1))
+backup() {
+	cp "$1" "$1.backup.$(date +%Y%m%d%H%M%S)"
 }
 
-require_command() {
-	command -v "$1" >/dev/null || die "Required command not found: $1"
-}
-
-find_brew() {
-	local candidate
-	if command -v brew; then
-		return
+# Copy a repo file into place. A different existing file is backed up first.
+copy_file() {
+	local source="$1" target="$2"
+	if [[ -e "$target" ]] && ! cmp -s "$source" "$target"; then
+		backup "$target" || return 1
 	fi
-	for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew /home/linuxbrew/.linuxbrew/bin/brew; do
-		if [[ -x "$candidate" ]]; then
-			printf '%s\n' "$candidate"
-			return
-		fi
+	mkdir -p "$(dirname "$target")" && cp "$source" "$target"
+}
+
+# Clone a Git repository, unless it is already there.
+clone() {
+	[[ -d "$2" ]] && return 0
+	git clone --depth=1 "$1" "$2"
+}
+
+brew_install() {
+	HOMEBREW_NO_AUTO_UPDATE=1 brew install "$1"
+}
+
+# Homebrew can be installed but not yet on PATH.
+load_brew() {
+	local brew
+	for brew in /opt/homebrew/bin/brew /home/linuxbrew/.linuxbrew/bin/brew; do
+		[[ -x "$brew" ]] && eval "$("$brew" shellenv)" && return 0
 	done
 	return 1
 }
 
-ensure_homebrew() {
-	local executable
-	if executable="$(find_brew)"; then
-		"$executable" --version >/dev/null
-		info "Homebrew already installed"
-		return
-	fi
-	curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$WORK_DIR/homebrew.sh"
-	NONINTERACTIVE=1 /bin/bash "$WORK_DIR/homebrew.sh"
-	find_brew >/dev/null || die "Homebrew installed but its executable could not be found"
+install_homebrew() {
+	command -v brew >/dev/null && return 0
+	load_brew && return 0
+	NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" &&
+		load_brew
 }
 
-install_package() {
-	HOMEBREW_NO_AUTO_UPDATE=1 "$BREW" install "$1"
+install_zsh() {
+	command -v zsh >/dev/null || brew_install zsh
 }
 
 configure_fzf() {
-	local prefix
-	prefix="$("$BREW" --prefix)"
-	"$prefix/opt/fzf/install" --key-bindings --completion --no-update-rc
-}
-
-clone_repository() {
-	local url="$1" destination="$2"
-	require_command git
-	if [[ -e "$destination" ]]; then
-		[[ -e "$destination/.git" ]] || die "Not replacing an existing non-Git directory: $destination"
-		git -C "$destination" rev-parse --verify HEAD >/dev/null
-		info "Already installed: $destination"
-		return
-	fi
-	mkdir -p -- "$(dirname -- "$destination")"
-	git clone --depth=1 "$url" "$destination"
+	"$(brew --prefix)/opt/fzf/install" --key-bindings --completion --no-update-rc
 }
 
 install_pathogen() {
-	mkdir -p "$HOME/.vim/autoload" "$HOME/.vim/bundle"
-	curl -fsSL https://raw.githubusercontent.com/tpope/vim-pathogen/master/autoload/pathogen.vim -o "$WORK_DIR/pathogen.vim"
-	cp "$WORK_DIR/pathogen.vim" "$HOME/.vim/autoload/pathogen.vim"
+	mkdir -p "$HOME/.vim/autoload" "$HOME/.vim/bundle" &&
+		curl -fsSLo "$HOME/.vim/autoload/pathogen.vim" https://raw.githubusercontent.com/tpope/vim-pathogen/master/autoload/pathogen.vim
 }
 
+# Write zsh completions for a tool. Tools that are not installed are skipped.
 install_completion() {
-	local tool="$1"
-	require_command "$tool"
-	mkdir -p -- "$COMPLETIONS_DIR"
-	"$tool" completion zsh > "$WORK_DIR/_$tool"
-	cp "$WORK_DIR/_$tool" "$COMPLETIONS_DIR/_$tool"
+	if ! command -v "$1" >/dev/null; then
+		info "$1 not installed, skipping its completions"
+		return 0
+	fi
+	mkdir -p "$HOME/.zsh/completions" &&
+		"$1" completion zsh >"$HOME/.zsh/completions/_$1"
 }
 
-install_agent_instructions() {
-	local destination="$1" existing=/dev/null
-	local source="$SCRIPT_DIR/AGENTS.md" temporary="$WORK_DIR/agent-instructions"
-	umask 077
-	[[ -s "$source" ]] || die "Shared instructions are missing or empty: $source"
-	if [[ -L "$destination" && ! -e "$destination" ]]; then
-		die "Instruction path is a broken symlink: $destination"
-	fi
-	if [[ -e "$destination" ]]; then
-		[[ -f "$destination" && -r "$destination" && -w "$destination" ]] ||
-			die "Instruction path must be a readable, writable file: $destination"
-		if [[ "$destination" -ef "$source" ]]; then
-			info "Already using shared instructions: $destination"
-			return
-		fi
-		existing="$destination"
-	fi
-	mkdir -p -- "$(dirname -- "$destination")"
-	awk '
-		BEGIN {
-			start = "<!-- dotfiles:agent-instructions:start -->"
-			end = "<!-- dotfiles:agent-instructions:end -->"
-		}
-		FILENAME == ARGV[1] { instructions = instructions $0 ORS; next }
-		$0 == start {
-			if (inside || seen) { invalid = 1; exit }
-			inside = seen = 1
-			next
-		}
-		$0 == end {
-			if (!inside) { invalid = 1; exit }
-			inside = 0
-			next
-		}
-		!inside { existing = existing $0 ORS }
-		END {
-			if (invalid || inside) {
-				print "ERROR: Invalid managed agent instruction markers" > "/dev/stderr"
-				exit 1
-			}
-			print start
-			printf "%s", instructions
-			print end
-			printf "%s", existing
-		}
-	' "$source" "$existing" > "$temporary"
-	if [[ ! -e "$destination" ]] || ! cmp -s "$temporary" "$destination"; then
-		# Keep existing file permissions and write through existing symlinks.
-		cat "$temporary" > "$destination"
-	fi
-}
+# Make ~/.zshrc load the repo defaults on its first line, before any existing
+# content. zsh runs top to bottom, so the existing settings win any conflict.
+setup_zshrc() {
+	local zshrc="$HOME/.zshrc" new
+	local load_defaults='source ~/.zshrc.dotfiles  # dotfiles defaults. Everything below overrides them.'
 
-install_codex_override() {
-	local override="${CODEX_HOME:-$HOME/.codex}/AGENTS.override.md" status
-	if [[ ! -e "$override" && ! -L "$override" ]]; then
-		return
-	fi
-	[[ -f "$override" && -r "$override" ]] || die "Cannot read Codex override: $override"
-	if grep -q '[^[:space:]]' "$override"; then
-		install_agent_instructions "$override"
-	else
-		status=$?
-		[[ "$status" -eq 1 ]] || die "Cannot read Codex override: $override"
-	fi
-}
-
-merge_zshrc() {
-	local destination="$HOME/.zshrc" existing=/dev/null backup prefix=""
-	require_command zsh
-	if [[ -L "$destination" && ! -e "$destination" ]]; then
-		die "Not replacing a broken .zshrc symlink"
-	fi
-	if [[ -e "$destination" ]]; then
-		[[ -f "$destination" && -r "$destination" && -w "$destination" ]] ||
-			die ".zshrc must be a readable, writable file"
-		[[ ! "$destination" -ef "$SCRIPT_DIR/.zshrc" ]] ||
-			die "Refusing to rewrite the repository's .zshrc through a link"
-		existing="$destination"
+	copy_file .zshrc "$HOME/.zshrc.dotfiles" || return 1
+	touch "$zshrc" || return 1
+	if grep -qxF "$load_defaults" "$zshrc"; then
+		info ".zshrc already loads the dotfiles defaults"
+		return 0
 	fi
 
-	# Remove only our previous block; keep all user code in its original order.
-	awk '
-		$0 == "# dotfiles:defaults:start" {
-			if (inside || seen) { invalid = 1; exit }
-			inside = seen = 1
-			next
-		}
-		$0 == "# dotfiles:defaults:end" {
-			if (!inside) { invalid = 1; exit }
-			inside = 0
-			next
-		}
-		!inside { print }
-		END {
-			if (invalid || inside) {
-				print "ERROR: Invalid managed .zshrc markers" > "/dev/stderr"
-				exit 1
-			}
-		}
-	' "$existing" > "$WORK_DIR/zshrc-existing"
-
-	if [[ -n "$BREW" ]]; then
-		prefix="$("$BREW" --prefix)"
-	fi
-	# These variables must expand when zsh starts, not during installation.
-	# shellcheck disable=SC2016
+	# The defaults already load Oh My Zsh. Loading it a second time would
+	# reset aliases such as l and ll, so comment out the existing load.
+	new="$(mktemp)" || return 1
 	{
-		cat "$SCRIPT_DIR/.zshrc"
-		printf '\n'
-		printf '[[ ! -f "$HOME/powerlevel10k/powerlevel10k.zsh-theme" ]] || source "$HOME/powerlevel10k/powerlevel10k.zsh-theme"\n'
-		printf '[[ ! -f "$HOME/.p10k.zsh" ]] || source "$HOME/.p10k.zsh"\n'
-		printf '[[ ! -f "$HOME/.fzf.zsh" ]] || source "$HOME/.fzf.zsh"\n'
-		if [[ -n "$prefix" ]]; then
-			printf 'export PATH="$PATH":%q:"$HOME/.local/bin"\n' "$prefix/bin"
-		else
-			printf 'export PATH="$PATH:$HOME/.local/bin"\n'
-		fi
-		printf 'fpath=("$HOME/.zsh/completions" $fpath)\nautoload -Uz compinit\ncompinit\n'
-		printf 'alias dotfiles=%q\n' "cd -- $(printf '%q' "$SCRIPT_DIR")"
-		printf "alias k='kubectl'\nalias ll='eza -la -g'\nalias l='eza -la -g'\n"
-	} > "$WORK_DIR/zshrc-defaults"
+		echo "$load_defaults"
+		sed -E 's|^([[:space:]]*[^#[:space:]].*oh-my-zsh\.sh.*)$|# Loaded by ~/.zshrc.dotfiles instead: \1|' "$zshrc"
+	} >"$new"
 
-	# Recognize common declarations, not arbitrary shell program equivalence.
-	awk '
-		function trim(text) {
-			sub(/^[ \t]+/, "", text); sub(/[ \t]+$/, "", text)
-			return text
-		}
-		function source_key(text) {
-			if (trim(text) ~ /^#/) return ""
-			if (!match(text, /(^|[ \t;&|])(source|\.)[ \t]+/)) return ""
-			text = substr(text, RSTART + RLENGTH)
-			gsub(/["\047]/, "", text)
-			sub(/[ \t]+#.*/, "", text)
-			text = trim(text)
-			sub(/[ \t]*;$/, "", text)
-			gsub(/\$\{HOME\}/, "$HOME", text)
-			gsub(/\$\{ZSH\}/, "$ZSH", text)
-			sub(/^~/, "$HOME", text)
-			return "source:" text
-		}
-		function key(line, text) {
-			text = trim(line)
-			if (text ~ /^#/) return ""
-			sub(/^(export|typeset|declare|readonly)[ \t]+(-[a-zA-Z]+[ \t]+)*/, "", text)
-			if (match(text, /^[a-zA-Z_][a-zA-Z_0-9]*\+?=/)) {
-				text = substr(text, 1, RLENGTH)
-				sub(/\+?=$/, "", text)
-				if (text == "path") text = "PATH"
-				if (text == "fpath") text = "FPATH"
-				return "variable:" text
-			}
-			if (text ~ /^alias[ \t]+[a-zA-Z_][a-zA-Z_0-9-]*=/) {
-				sub(/^alias[ \t]+/, "", text); sub(/=.*/, "", text)
-				return "alias:" text
-			}
-			return source_key(text)
-		}
-		FILENAME == ARGV[1] {
-			existing = existing $0 ORS
-			# Reserve declared keys even in guards rather than risk overriding them.
-			k = key($0)
-			if (k != "") keys[k] = 1
-			text = trim($0)
-			if (text !~ /^#/ && text != "") lines[text] = 1
-			next
-		}
-		{
-			line = $0
-			k = key(line)
-			chunk = line ORS
-			# Keep multiline arrays and the instant-prompt guard intact.
-			if (line ~ /^[ \t]*(export[ \t]+)?[a-zA-Z_][a-zA-Z_0-9]*=\([ \t]*$/) {
-				while ((getline line) > 0) {
-					chunk = chunk line ORS
-					if (line ~ /^[ \t]*\)[ \t]*(#.*)?$/) break
-				}
-			} else if (line ~ /^if .*p10k-instant-prompt/) {
-				while ((getline line) > 0) {
-					chunk = chunk line ORS
-					if (source_key(line) != "") k = source_key(line)
-					if (line ~ /^fi([ \t;]|$)/) break
-				}
-			}
-			if (k != "") {
-				if (keys[k]) next
-				keys[k] = 1
-			} else if (trim($0) in lines || chunk in chunks) next
-			chunks[chunk] = 1
-			defaults = defaults chunk
-		}
-		END {
-			printf "%s", existing
-			print "# dotfiles:defaults:start"
-			printf "%s", defaults
-			print "# dotfiles:defaults:end"
-		}
-	' "$WORK_DIR/zshrc-existing" "$WORK_DIR/zshrc-defaults" > "$WORK_DIR/zshrc-merged"
-
-	zsh -n "$WORK_DIR/zshrc-merged"
-	if [[ -e "$destination" ]] && cmp -s "$WORK_DIR/zshrc-merged" "$destination"; then
-		info ".zshrc already up to date"
-		return
+	zsh -n "$new" || { rm -f "$new"; return 1; }
+	if [[ -s "$zshrc" ]]; then
+		backup "$zshrc" || { rm -f "$new"; return 1; }
 	fi
-	if [[ -e "$destination" ]]; then
-		backup="$(mktemp "$HOME/.zshrc.backup.XXXXXX")"
-		cp -pL "$destination" "$backup"
-		info "Backed up .zshrc to $backup"
-	fi
-	cat "$WORK_DIR/zshrc-merged" > "$destination"
+	cat "$new" >"$zshrc" && rm -f "$new"
 }
 
-run_step "Copilot CLI instructions" install_agent_instructions "${COPILOT_HOME:-$HOME/.copilot}/copilot-instructions.md"
-run_step "Codex instructions" install_agent_instructions "${CODEX_HOME:-$HOME/.codex}/AGENTS.md"
-run_step "Codex global override" install_codex_override
-run_step "Claude Code instructions" install_agent_instructions "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/CLAUDE.md"
+# Agent instructions: Copilot CLI, Codex and Claude Code read these in every session.
+step "Copilot CLI instructions" copy_file AGENTS.md "$HOME/.copilot/copilot-instructions.md"
+step "Codex instructions" copy_file AGENTS.md "$HOME/.codex/AGENTS.md"
+step "Claude Code instructions" copy_file AGENTS.md "$HOME/.claude/CLAUDE.md"
 
-run_step "Homebrew" ensure_homebrew
-brew_status=$?
-if [[ "$brew_status" -eq 0 ]]; then
-	BREW="$(find_brew)"
-	PATH="$(dirname -- "$BREW"):$PATH"
-	export PATH
-	for package in fzf bat tree jq mycli helm zoxide gh eza goenv copilot-cli; do
-		run_step "Installing $package" install_package "$package"
-		package_status=$?
-		case "$package" in
-			fzf) fzf_status=$package_status ;;
-			helm) helm_status=$package_status ;;
-		esac
-	done
-	if [[ "$fzf_status" -eq 0 ]]; then
-		run_step "Configuring fzf" configure_fzf
-	else
-		skip_step "Configuring fzf" "fzf installation failed"
-	fi
-else
-	skip_step "Homebrew packages and fzf configuration" "Homebrew is unavailable"
-	helm_status=1
-fi
+# Packages
+step "Install Homebrew" install_homebrew
+for package in fzf bat tree jq mycli helm zoxide gh eza goenv copilot-cli; do
+	step "Install $package" brew_install "$package"
+done
+step "Configure fzf" configure_fzf
 
-run_step "Installing lnav" sudo install -m 755 "$SCRIPT_DIR/tools/lnav" /usr/local/bin/lnav
-run_step "Installing datefmt" sudo install -m 755 "$SCRIPT_DIR/tools/date" /usr/local/bin/datefmt
-run_step "Linking start_ssh_agent" sudo ln -sf "$SCRIPT_DIR/start_ssh_agent.sh" /usr/local/bin/start_ssh_agent
-run_step "Vim pathogen" install_pathogen
-run_step "Vim apprentice theme" clone_repository https://github.com/romainl/Apprentice.git "$HOME/.vim/bundle/apprentice"
-run_step "Vim configuration" cp "$SCRIPT_DIR/.vimrc" "$HOME/.vimrc"
-run_step "tmux configuration" cp "$SCRIPT_DIR/.tmux.conf" "$HOME/.tmux.conf"
-run_step "Git configuration" cp "$SCRIPT_DIR/.gitconfig" "$HOME/.gitconfig"
+# Tools
+step "Install lnav" sudo install -m 755 tools/lnav /usr/local/bin/lnav
+step "Install datefmt" sudo install -m 755 tools/date /usr/local/bin/datefmt
+step "Link start_ssh_agent" sudo ln -sf "$DOTFILES/start_ssh_agent.sh" /usr/local/bin/start_ssh_agent
 
-if command -v zsh >/dev/null; then
-	info "zsh already installed"
-elif [[ "$brew_status" -eq 0 ]]; then
-	run_step "Installing zsh" install_package zsh
-else
-	skip_step "Installing zsh" "Homebrew is unavailable"
-fi
-if command -v zsh >/dev/null; then
-	run_step "Oh My Zsh" clone_repository https://github.com/ohmyzsh/ohmyzsh.git "$OMZ_DIR"
-	omz_status=$?
-else
-	skip_step "Oh My Zsh" "zsh is unavailable"
-	omz_status=1
-fi
+# Vim, tmux and Git
+step "Install vim pathogen" install_pathogen
+step "Install vim apprentice theme" clone https://github.com/romainl/Apprentice.git "$HOME/.vim/bundle/apprentice"
+step "Copy .vimrc" copy_file .vimrc "$HOME/.vimrc"
+step "Copy .tmux.conf" copy_file .tmux.conf "$HOME/.tmux.conf"
+step "Install tmux plugin manager" clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
+step "Copy .gitconfig" copy_file .gitconfig "$HOME/.gitconfig"
 
-run_step "Powerlevel10k theme" clone_repository https://github.com/romkatv/powerlevel10k.git "$HOME/powerlevel10k"
-run_step "Powerlevel10k configuration" cp "$SCRIPT_DIR/.p10k.zsh" "$HOME/.p10k.zsh"
-if [[ "$omz_status" -eq 0 ]]; then
-	run_step "zsh autosuggestions" clone_repository https://github.com/zsh-users/zsh-autosuggestions.git "${ZSH_CUSTOM:-$OMZ_DIR/custom}/plugins/zsh-autosuggestions"
-else
-	skip_step "zsh autosuggestions" "Oh My Zsh installation failed"
-fi
-run_step "kubectl completions" install_completion kubectl
-if [[ "$helm_status" -eq 0 ]]; then
-	run_step "Helm completions" install_completion helm
-else
-	skip_step "Helm completions" "Helm installation failed or Homebrew is unavailable"
-fi
-run_step "tmux plugin manager" clone_repository https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
-run_step "Merging .zshrc" merge_zshrc
+# zsh
+step "Install zsh" install_zsh
+step "Install Oh My Zsh" clone https://github.com/ohmyzsh/ohmyzsh.git "$HOME/.oh-my-zsh"
+step "Install zsh-autosuggestions" clone https://github.com/zsh-users/zsh-autosuggestions "$HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+step "Install powerlevel10k" clone https://github.com/romkatv/powerlevel10k.git "$HOME/powerlevel10k"
+step "Copy .p10k.zsh" copy_file .p10k.zsh "$HOME/.p10k.zsh"
+step "Install kubectl completions" install_completion kubectl
+step "Install helm completions" install_completion helm
+step "Set up ~/.zshrc" setup_zshrc
 
-if [[ "$failures" -gt 0 ]]; then
-	error "Installation finished with $failures failed or skipped steps"
+if [[ ${#failed_steps[@]} -gt 0 ]]; then
+	error "Finished with ${#failed_steps[@]} failed step(s):"
+	printf '  - %s\n' "${failed_steps[@]}" >&2
 	exit 1
 fi
-info "Installation finished successfully"
+info "Finished successfully"
