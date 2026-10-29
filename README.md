@@ -20,8 +20,11 @@ different content are first backed up as `<file>.backup.<timestamp>`.
 The repo's [`.zshrc`](.zshrc) holds defaults (Oh My Zsh, powerlevel10k, aliases).
 The installer copies it to `~/.zshrc.dotfiles` and adds one line at the top of
 `~/.zshrc` that loads it. Your existing `~/.zshrc` content stays below that line,
-so on any conflict (same alias, variable, etc.) your setting wins. Oh My Zsh is
-loaded by the defaults, so an existing line that loads it is commented out.
+so on any conflict (same alias, variable, etc.) your setting wins.
+
+If your `~/.zshrc` already loads Oh My Zsh, the defaults skip Oh My Zsh and
+powerlevel10k, so your own plugins and theme are used. Oh My Zsh then replaces
+the repo's `l` and `ll` aliases with its own.
 
 ### Agent instructions
 

@@ -97,19 +97,13 @@ setup_zshrc() {
 		return 0
 	fi
 
-	# The defaults already load Oh My Zsh. Loading it a second time would
-	# reset aliases such as l and ll, so comment out the existing load.
-	new="$(mktemp)" || return 1
-	{
-		echo "$load_defaults"
-		sed -E 's|^([[:space:]]*[^#[:space:]].*oh-my-zsh\.sh.*)$|# Loaded by ~/.zshrc.dotfiles instead: \1|' "$zshrc"
-	} >"$new"
-
-	zsh -n "$new" || { rm -f "$new"; return 1; }
 	if [[ -s "$zshrc" ]]; then
-		backup "$zshrc" || { rm -f "$new"; return 1; }
+		backup "$zshrc" || return 1
 	fi
-	cat "$new" >"$zshrc" && rm -f "$new"
+	new="$(mktemp)" &&
+		{ echo "$load_defaults"; cat "$zshrc"; } >"$new" &&
+		cat "$new" >"$zshrc" &&
+		rm -f "$new"
 }
 
 # Agent instructions: Copilot CLI, Codex and Claude Code read these in every session.
