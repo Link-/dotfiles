@@ -5,15 +5,40 @@ My super awesome · files
 > [!IMPORTANT]
 > I don't recommend you use this repo. This is a pretty messy setup that serves a very specific purpose.
 
-## Shared agent instructions
+## Installation
 
-[AGENTS.md](AGENTS.md) is the shared source for communication preferences. The
-bootstrap (`./install`) installs it automatically. To install or refresh only
-agent instructions, without installing software or changing shell settings, run:
+Run the existing installer from this checkout:
 
 ```bash
-bash ./install_agent_instructions
+./install
 ```
+
+You can also invoke its absolute path from another working directory.
+
+Each step reports errors and stops its own dependent work, while independent steps
+continue. The installer exits nonzero if any step failed or was skipped because a
+prerequisite failed. Existing Git-based tools are kept rather than cloned again.
+
+The `.zshrc` merge keeps existing content in its original order, then adds a marked
+block of missing defaults. Destination settings win for common variable
+assignments (one declaration per line, including `export`, `typeset`, and multiline
+arrays), aliases, and equivalent `source`/`.` commands with common quoting and
+home-path forms. Tied variables (`path`/`PATH` and `fpath`/`FPATH`) share keys.
+This is a text merge, not a shell interpreter: recognized declarations reserve
+their keys even inside conditions or functions. Computed paths and side effects of imported
+scripts still need manual review. New defaults run after existing code.
+
+The installer does not execute `.zshrc`; it checks the merged file with `zsh -n`
+before writing it. A changed existing file is backed up as
+`~/.zshrc.backup.<unique suffix>`, keeping earlier backups. Existing symlinks and
+file permissions are preserved. Put personal changes outside the managed block so
+repeat installations keep them. Completions use `~/.zsh/completions`, not Bash's
+unavailable zsh `fpath` array.
+
+## Shared agent instructions
+
+[AGENTS.md](AGENTS.md) remains the shared source for communication preferences,
+installed directly by `./install`.
 
 The installer copies the source into a marked section of each tool's documented
 user-level instruction file. It keeps existing instructions outside that section,
@@ -40,4 +65,6 @@ Copilot's IDE/cloud surfaces or remote environments; install separately on each
 machine. Other agents can use the repository's standard `AGENTS.md` where they
 support it, but there is no universal user-level instruction path.
 
-Run the focused installer checks with `bash tests/test_agent_instructions.sh`.
+Run the isolated installer checks with `bash tests/test_install.sh`. They use
+temporary home directories and mocked external commands, without installing
+software or changing live configuration.
