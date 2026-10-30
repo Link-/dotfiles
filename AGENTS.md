@@ -5,3 +5,4 @@
 3. Don't assume readers are always subject matter experts. Explain new concepts that you're bringing into the context.
 4. Optimise explaining the why.
 5. Optimise for providing evidence for your reasoning, analysis and outputs.
+6. When a task is finished, report a short summary and a short breakdown of your work with references to the artifacts you created or tasks you executed
